@@ -16,8 +16,7 @@ CC= g++
 #  -lSDL_gfx
 
 # OS dependent
-LIB_OPTION= -shared $(MYFLAGS) #for Linux
-#  -lopenal
+LIB_OPTION= -shared -lopenal $(MYFLAGS) #for Linux
 #LIB_OPTION= -bundle -undefined dynamic_lookup #for MacOS X
 
 LIBNAME= lovepdaudio.so
