@@ -18,6 +18,11 @@ extern "C" {
 #define LUA_API
 #endif
 
+#ifdef WIN32
+#else
+#include <unistd.h> // Sleep
+#endif
+
 // OpenAL
 #ifdef LOVE_MACOSX
 #include <OpenAL/alc.h>
@@ -35,9 +40,78 @@ extern "C" {
 
 // ***** ***** ***** ***** ***** cLuaAudioStream
 
+class cLuaAudio { public:
+	// The OpenAL device.
+	ALCdevice * device;
+
+	// The OpenAL capture device (microphone).
+	ALCdevice * capture;
+
+	// The OpenAL context.
+	ALCcontext * context;
+	
+	static const int NUM_SOURCES = 4;
+	// OpenAL sources
+	ALuint sources[NUM_SOURCES];
+	
+	ALuint makeSource () { return sources[0]; }
+
+	/// constructor
+	cLuaAudio () : device(0),capture(0),context(0) {
+
+		// Passing zero for default device.
+		device = alcOpenDevice(0);
+
+		if (device == 0) { fail("Could not open device."); return; }
+
+		context = alcCreateContext(device, 0);
+
+		if (context == 0) { fail("Could not create context."); return; }
+
+		alcMakeContextCurrent(context);
+
+		if (alcGetError(device) != ALC_NO_ERROR) { fail("Could not make context current."); return; }
+		
+		
+		// Generate sources.
+		alGenSources(NUM_SOURCES, sources);
+
+		if (alGetError() != AL_NO_ERROR) { fail("Could not generate sources."); return; }
+		
+		
+		printf("cLuaAudio init ok\n");
+	}
+	
+	~cLuaAudio () {
+		// Free all sources.
+		alDeleteSources(NUM_SOURCES, sources);
+		
+		
+		alcMakeContextCurrent(0);
+		alcDestroyContext(context);
+		//if (capture) alcCaptureCloseDevice(capture);
+		alcCloseDevice(device);
+	}
+	
+	void fail (const char* txt) { printf("cLuaAudio:fail %s\n",txt); }
+};
+
 /// dummy to keep code similar to love
 class cLuaAudioDecoder { public:
+	static const int DEFAULT_SAMPLE_RATE = 44100;
+	unsigned char mybuf[10*1024];
+
+	cLuaAudioDecoder () {
+		for (int i=0;i<sizeof(mybuf)/(getBits()/8);++i) mybuf[i] = (i/1) % 255;
+	}
+	
 	bool isFinished () { return false; }
+	void* getBuffer () const { return (void*)mybuf; }
+	int decode () { return sizeof(mybuf)/(getBits()/8); } // TODO
+	int getChannels () { return 1; } // mono
+	int getBits () { return 8; } // 8bit
+	int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
+
 };
 
 /// based on love2d::Source
@@ -68,14 +142,17 @@ class cLuaAudioStream { public:
 	/// destructor
 	~cLuaAudioStream();
 	
+	void	setSource		(ALuint v);
+	
 	void	playAtomic		();
 	bool	update			();
 	int		streamAtomic	(ALuint buffer, cLuaAudioDecoder * d);
+	ALenum	getFormat		(int channels, int bits) const;
 };
 
 // ***** ***** ***** ***** ***** cLuaAudioStream impl
 
-cLuaAudioStream::cLuaAudioStream	() : type(TYPE_STREAM), valid(false),
+cLuaAudioStream::cLuaAudioStream	() : type(TYPE_STREAM), valid(false), source(0),
 		pitch(1.0f), volume(1.0f), minVolume(0.0f),
 		maxVolume(1.0f), referenceDistance(1.0f), rolloffFactor(1.0f), maxDistance(FLT_MAX),
 		offsetSamples(0), offsetSeconds(0), decoder(new cLuaAudioDecoder()){
@@ -84,6 +161,11 @@ cLuaAudioStream::cLuaAudioStream	() : type(TYPE_STREAM), valid(false),
 
 cLuaAudioStream::~cLuaAudioStream	() {
 	alDeleteBuffers(MAX_BUFFERS, buffers);
+}
+
+void cLuaAudioStream::setSource (ALuint v) {
+	source = v;
+	valid = true;
 }
 
 /// love2d::source::playAtomic
@@ -162,8 +244,31 @@ bool cLuaAudioStream::update	() {
 	return true;
 }
 
+ALenum cLuaAudioStream::getFormat(int channels, int bits) const
+{
+	if (channels == 1 && bits == 8)
+		return AL_FORMAT_MONO8;
+	else if (channels == 1 && bits == 16)
+		return AL_FORMAT_MONO16;
+	else if (channels == 2 && bits == 8)
+		return AL_FORMAT_STEREO8;
+	else if (channels == 2 && bits == 16)
+		return AL_FORMAT_STEREO16;
+	else
+		return 0;
+}
+
 int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
-	return 50; // TODO : newly added samples ? see love2d::Source::streamAtomic
+	// Get more sound data.
+	int decoded = d->decode();
+
+	int fmt = getFormat(d->getChannels(), d->getBits());
+
+	if (fmt != 0)
+		alBufferData(buffer, fmt, d->getBuffer(), decoded, d->getSampleRate());
+	
+	//~ printf("cLuaAudioStream::streamAtomic %d\n",(int)buffer,(int)decoded);
+	return decoded; // TODO : newly added samples ? see love2d::Source::streamAtomic
 }
 
 // ***** ***** ***** ***** ***** lua api
@@ -173,8 +278,21 @@ static int L_helloworld (lua_State *L) {
 	return 0;
 }
 
+void MySleep (int iSeconds) {
+	#ifndef WIN32
+		sleep(iSeconds);
+	#else
+		Sleep(iSeconds*1000); // takes milliseconds
+	#endif
+}
+
 static int L_test01 (lua_State *L) {
 	printf("lovepdaudio:test01!\n");
+	cLuaAudio luaAudio;
+	cLuaAudioStream o;
+	o.setSource(luaAudio.makeSource());
+	o.playAtomic();
+	for (int i=0;i<100000;++i) { o.update(); MySleep(1); }
 	return 0;
 }
 
