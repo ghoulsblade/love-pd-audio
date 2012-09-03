@@ -3,15 +3,21 @@ LUA_INC= /usr/include/lua5.1
 #~ WARN= -Wall -Wmissing-prototypes -Wmissing-declarations -ansi -pedantic
 WARN= 
 INCS= -I$(LUA_INC) -Iinclude
-CFLAGS= -O2 $(WARN) $(INCS) $(DEFS)
-CXXFLAGS= -O2 $(WARN) $(INCS) $(DEFS)
+
+#~ MYFLAGS= -fPIC : 64bit only?
+#~ MYFLAGS= -m32 : compile for 32 bit
+MYFLAGS= -fPIC   
+
+CFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
+CXXFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
 CC= g++
 
 
 #  -lSDL_gfx
 
 # OS dependent
-LIB_OPTION= -shared -lopenal #for Linux
+LIB_OPTION= -shared $(MYFLAGS) #for Linux
+#  -lopenal
 #LIB_OPTION= -bundle -undefined dynamic_lookup #for MacOS X
 
 LIBNAME= lovepdaudio.so
@@ -24,7 +30,9 @@ RANLIB= ranlib
 lib: $(LIBNAME)
 
 $(LIBNAME): $(OBJS)
-	export MACOSX_DEPLOYMENT_TARGET="10.3"; $(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
+	
+#~ export MACOSX_DEPLOYMENT_TARGET="10.3"; $(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
 
 #~ $(COMPAT_DIR)/compat-5.1.o: $(COMPAT_DIR)/compat-5.1.c
 #~ $(CC) -c $(CFLAGS) -o $@ $(COMPAT_DIR)/compat-5.1.c
