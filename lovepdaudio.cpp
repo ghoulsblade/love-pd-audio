@@ -300,11 +300,23 @@ void pdnoteon(int ch, int pitch, int vel) {
   printf("noteon: %d %d %d\n", ch, pitch, vel);
 }
 
+#define LIBPD_DEC_16BIT
+
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int BLOCK_SIZE = 64;
-	unsigned char mybuf[BLOCK_SIZE*2];
-	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*2];  // one input channel, two output channels, block size 64, one tick per buffer
+	static const int NUM_OUT_CHANNELS = 1;
+	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
+	
+	#ifdef LIBPD_DEC_16BIT
+	static const int BYTES_PER_SAMPLE = 2;
+	static const float SAMPLE_MAXVAL = 0x7fff;
+	short mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+	#else
+	static const int BYTES_PER_SAMPLE = 1;
+	static const float SAMPLE_MAXVAL = 0x7f;
+	char mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+	#endif
 	
 	cLuaAudioDecoder_LibPD () {
 		int i;
@@ -314,27 +326,30 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 
 	virtual void* getBuffer () const { return (void*)mybuf; }
 	
-	virtual int getChannels () { return 2; } // stereo
+	virtual int getChannels () { return NUM_OUT_CHANNELS; } // 1=mono 2=stereo
+	virtual int getBits () { return BYTES_PER_SAMPLE * 8; } // 8bit / 16bit
+	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 	
 	virtual int decode () {
 		libpd_process_float(1, inbuf, outbuf);
 		int num_samples = sizeof(outbuf)/sizeof(float);
-		for (int i=0;i<num_samples;++i) mybuf[i] = 255.0 * outbuf[i];
-		return num_samples;
+		for (int i=0;i<num_samples;++i) mybuf[i] = SAMPLE_MAXVAL * outbuf[i];
+		return num_samples * BYTES_PER_SAMPLE;
 	}
 };
 
 
 
 int lib_pd_test (const char* path_file,const char* path_folder) {
-
-
+	// perpare audio
+	cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD();
+	
 	// init pd
-	int srate = 44100;
+	int srate = dec->getSampleRate();
 	libpd_printhook = (t_libpd_printhook) pdprint;
 	libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
 	libpd_init();
-	libpd_init_audio(1, 2, srate);
+	libpd_init_audio(1, dec->getChannels(), srate);
 
 	// compute audio    [; pd dsp 1(
 	libpd_start_message(1); // one entry in list
@@ -349,7 +364,7 @@ int lib_pd_test (const char* path_file,const char* path_folder) {
 
 	// now run pd in loop for openal out
 	cLuaAudio luaAudio;
-	cLuaAudioStream o(new cLuaAudioDecoder_LibPD());
+	cLuaAudioStream o(dec);
 	o.setSource(luaAudio.makeSource());
 	o.playAtomic();
 	while (true) { o.update(); }
