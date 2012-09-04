@@ -1,6 +1,8 @@
 // myhello.cpp  ->  myhello.dll (msvc6 : dll example project, select c++:codegen:"multithreaded dll" and add luabin include&lib paths)
 //~ #include <openal.h>
 // win:vc6 : add openal.lib ?  to linker (and paths accordingly)
+// http://connect.creativelabs.com/openal/Documentation/OpenAL%201.1%20Specification.htm
+// http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
 #include <stdio.h>
 extern "C" {

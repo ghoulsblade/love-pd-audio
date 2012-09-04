@@ -4,6 +4,8 @@ LUA_INC= /usr/include/lua5.1
 WARN= 
 INCS= -I$(LUA_INC) -Iinclude
 
+LIBPD = libs/libpd.so
+
 #~ MYFLAGS= -fPIC : 64bit only?
 #~ MYFLAGS= -m32 : compile for 32 bit
 MYFLAGS= -fPIC   
@@ -12,11 +14,8 @@ CFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
 CXXFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
 CC= g++
 
-
-#  -lSDL_gfx
-
 # OS dependent
-LIB_OPTION= -shared -lopenal $(MYFLAGS) #for Linux
+LIB_OPTION= -shared -lopenal -Llibs $(MYFLAGS) #for Linux
 #LIB_OPTION= -bundle -undefined dynamic_lookup #for MacOS X
 
 LIBNAME= lovepdaudio.so
@@ -29,7 +28,7 @@ RANLIB= ranlib
 lib: $(LIBNAME)
 
 $(LIBNAME): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(LIBPD) $(OBJS)
 	
 #~ export MACOSX_DEPLOYMENT_TARGET="10.3"; $(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
 
