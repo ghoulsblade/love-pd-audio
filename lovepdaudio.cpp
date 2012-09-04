@@ -11,6 +11,8 @@ extern "C" {
 }
 #define PROJECT_TABLENAME "lovepdaudio"
 
+#include "z_libpd.h"
+
 #ifdef LUA_API
 #undef LUA_API
 #endif
@@ -275,6 +277,51 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 
 // ***** ***** ***** ***** ***** lua api
 
+void pdprint(const char *s) {
+  printf("%s", s);
+}
+
+void pdnoteon(int ch, int pitch, int vel) {
+  printf("noteon: %d %d %d\n", ch, pitch, vel);
+}
+
+int lib_pd_test (const char* path_file,const char* path_folder) {
+
+
+  // init pd
+  int srate = 44100;
+  libpd_printhook = (t_libpd_printhook) pdprint;
+  libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
+  libpd_init();
+  libpd_init_audio(1, 2, srate);
+  float inbuf[64], outbuf[128];  // one input channel, two output channels
+                                 // block size 64, one tick per buffer
+
+  // compute audio    [; pd dsp 1(
+  libpd_start_message(1); // one entry in list
+  libpd_add_float(1.0f);
+  libpd_finish_message("pd", "dsp");
+
+  // open patch       [; pd open file folder(
+  libpd_openfile(path_file, path_folder);
+
+  // now run pd for ten seconds (logical time)
+  int i,j;
+  for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
+  for (i=0;i<sizeof(outbuf)/sizeof(float);++i) outbuf[i] = 0;
+  for (i = 0; i < 10 * srate / 64; i++) {
+    // fill inbuf here
+    libpd_process_float(1, inbuf, outbuf);
+    // use outbuf here
+	for (j=0;j<sizeof(outbuf)/sizeof(float);++j) printf("%0.1f;",(float)outbuf[j]); printf("\n");
+  }
+
+  return 0;
+}
+
+
+// ***** ***** ***** ***** ***** lua api
+
 static int L_helloworld (lua_State *L) {
 	printf("lovepdaudio:hello world!\n");
 	return 0;
@@ -298,6 +345,14 @@ static int L_test01 (lua_State *L) {
 	return 0;
 }
 
+static int L_test02 (lua_State *L) {
+	const char* path_file = luaL_checkstring(L,1);
+	const char* path_folder = ".";
+	printf("lovepdaudio:test02 %s!\n",path_file);
+	lib_pd_test(path_file,path_folder);
+	return 0;
+}
+
 // ***** ***** ***** ***** ***** register
 
 int LUA_API luaopen_lovepdaudio (lua_State *L) {
@@ -305,6 +360,7 @@ int LUA_API luaopen_lovepdaudio (lua_State *L) {
 	struct luaL_reg funlist[] = {
 		{"helloworld",		L_helloworld},			
 		{"test01",		L_test01},			
+		{"test02",		L_test02},			
 		{NULL, NULL},
 	};
 	luaL_openlib (L, PROJECT_TABLENAME, funlist, 0);
