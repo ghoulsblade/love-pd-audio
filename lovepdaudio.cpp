@@ -333,7 +333,7 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 		#define LIBPD_DEC_TYPE unsigned short
 		static const int BYTES_PER_SAMPLE = 2;
 		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = 0;
-		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xDfff;
+		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xCfff;
 		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
 		#else
 		#define LIBPD_DEC_TYPE unsigned char
