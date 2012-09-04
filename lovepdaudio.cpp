@@ -301,6 +301,12 @@ void pdnoteon(int ch, int pitch, int vel) {
 }
 
 #define LIBPD_DEC_16BIT
+//~ #define LIBPD_DEC_SIGNED
+
+// ok: 8bit  unsigned
+// ok: 16bit signed  (a bit quiet)
+// fail-heavy : 8bit signed
+// fail-sometimes : 16bit unsigned   with max=0xffff  ok with 0xCfff
 
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
@@ -308,14 +314,34 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int NUM_OUT_CHANNELS = 1;
 	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
 	
-	#ifdef LIBPD_DEC_16BIT
-	static const int BYTES_PER_SAMPLE = 2;
-	static const float SAMPLE_MAXVAL = 0x7fff;
-	short mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+	#ifdef LIBPD_DEC_SIGNED
+		#ifdef LIBPD_DEC_16BIT
+		static const int BYTES_PER_SAMPLE = 2;
+		#define LIBPD_DEC_TYPE signed short
+		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = -0x7fff;
+		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0x7fff;
+		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+		#else
+		#define LIBPD_DEC_TYPE signed char
+		static const int BYTES_PER_SAMPLE = 1;
+		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = -0x7f;
+		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0x7f;
+		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+		#endif
 	#else
-	static const int BYTES_PER_SAMPLE = 1;
-	static const float SAMPLE_MAXVAL = 0x7f;
-	char mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+		#ifdef LIBPD_DEC_16BIT
+		#define LIBPD_DEC_TYPE unsigned short
+		static const int BYTES_PER_SAMPLE = 2;
+		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = 0;
+		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xDfff;
+		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+		#else
+		#define LIBPD_DEC_TYPE unsigned char
+		static const int BYTES_PER_SAMPLE = 1;
+		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = 0;
+		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xff;
+		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+		#endif
 	#endif
 	
 	cLuaAudioDecoder_LibPD () {
@@ -333,7 +359,13 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	virtual int decode () {
 		libpd_process_float(1, inbuf, outbuf);
 		int num_samples = sizeof(outbuf)/sizeof(float);
-		for (int i=0;i<num_samples;++i) mybuf[i] = SAMPLE_MAXVAL * outbuf[i];
+		for (int i=0;i<num_samples;++i) { 
+			float v = outbuf[i]; 
+			v *= ((float)SAMPLE_MAXVAL);
+				 if (v <= SAMPLE_MINVAL) mybuf[i] = SAMPLE_MINVAL;
+			else if (v >= SAMPLE_MAXVAL) mybuf[i] = SAMPLE_MAXVAL; 
+			else mybuf[i] = v;
+		}
 		return num_samples * BYTES_PER_SAMPLE;
 	}
 };
