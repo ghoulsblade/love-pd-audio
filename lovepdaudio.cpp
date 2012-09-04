@@ -42,7 +42,7 @@ extern "C" {
 	int LUA_API luaopen_lovepdaudio (lua_State *L);
 }
 
-// ***** ***** ***** ***** ***** cLuaAudioStream
+// ***** ***** ***** ***** ***** cLuaAudio
 
 class cLuaAudio { public:
 	// The OpenAL device.
@@ -100,23 +100,38 @@ class cLuaAudio { public:
 	void fail (const char* txt) { printf("cLuaAudio:fail %s\n",txt); }
 };
 
+// ***** ***** ***** ***** ***** cLuaAudioDecoder
+
 /// dummy to keep code similar to love
 class cLuaAudioDecoder { public:
 	static const int DEFAULT_SAMPLE_RATE = 44100;
+
+	cLuaAudioDecoder () {}
+	
+	virtual bool isFinished () { return false; }
+	virtual void* getBuffer () const { return 0; } ///< override me
+	virtual int decode () { return 0; } ///< override me
+	virtual int getChannels () { return 1; } // mono
+	virtual int getBits () { return 8; } // 8bit
+	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
+};
+
+class cLuaAudioDecoder_Dummy : public cLuaAudioDecoder { public:
 	unsigned char mybuf[10*1024];
 
-	cLuaAudioDecoder () {
+	cLuaAudioDecoder_Dummy () {
 		for (int i=0;i<sizeof(mybuf)/(getBits()/8);++i) mybuf[i] = (i/1) % 255;
 	}
 	
-	bool isFinished () { return false; }
-	void* getBuffer () const { return (void*)mybuf; }
-	int decode () { return sizeof(mybuf)/(getBits()/8); } // TODO
-	int getChannels () { return 1; } // mono
-	int getBits () { return 8; } // 8bit
-	int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
-
+	virtual bool isFinished () { return false; }
+	virtual void* getBuffer () const { return (void*)mybuf; }
+	virtual int decode () { return sizeof(mybuf)/(getBits()/8); } // TODO
+	virtual int getChannels () { return 1; } // mono
+	virtual int getBits () { return 8; } // 8bit
+	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 };
+
+// ***** ***** ***** ***** ***** cLuaAudioStream
 
 /// based on love2d::Source
 class cLuaAudioStream { public:
@@ -142,7 +157,7 @@ class cLuaAudioStream { public:
 	float offsetSeconds;
 	
 	/// constructor
-	cLuaAudioStream();
+	cLuaAudioStream(cLuaAudioDecoder* decoder=0);
 	/// destructor
 	~cLuaAudioStream();
 	
@@ -156,10 +171,10 @@ class cLuaAudioStream { public:
 
 // ***** ***** ***** ***** ***** cLuaAudioStream impl
 
-cLuaAudioStream::cLuaAudioStream	() : type(TYPE_STREAM), valid(false), source(0),
+cLuaAudioStream::cLuaAudioStream	(cLuaAudioDecoder* decoder) : type(TYPE_STREAM), valid(false), source(0),
 		pitch(1.0f), volume(1.0f), minVolume(0.0f),
 		maxVolume(1.0f), referenceDistance(1.0f), rolloffFactor(1.0f), maxDistance(FLT_MAX),
-		offsetSamples(0), offsetSeconds(0), decoder(new cLuaAudioDecoder()){
+		offsetSamples(0), offsetSeconds(0), decoder(decoder ? decoder : (new cLuaAudioDecoder_Dummy())){
 	alGenBuffers(MAX_BUFFERS, buffers);
 }
 
@@ -285,38 +300,70 @@ void pdnoteon(int ch, int pitch, int vel) {
   printf("noteon: %d %d %d\n", ch, pitch, vel);
 }
 
+/// dummy to keep code similar to love
+class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
+	static const int BLOCK_SIZE = 64;
+	unsigned char mybuf[BLOCK_SIZE*2];
+	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*2];  // one input channel, two output channels, block size 64, one tick per buffer
+	
+	cLuaAudioDecoder_LibPD () {
+		int i;
+		for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
+		for (i=0;i<sizeof(outbuf)/sizeof(float);++i) outbuf[i] = 0;
+	}
+
+	virtual void* getBuffer () const { return (void*)mybuf; }
+	
+	virtual int getChannels () { return 2; } // stereo
+	
+	virtual int decode () {
+		libpd_process_float(1, inbuf, outbuf);
+		int num_samples = sizeof(outbuf)/sizeof(float);
+		for (int i=0;i<num_samples;++i) mybuf[i] = 255.0 * outbuf[i];
+		return num_samples;
+	}
+};
+
+
+
 int lib_pd_test (const char* path_file,const char* path_folder) {
 
 
-  // init pd
-  int srate = 44100;
-  libpd_printhook = (t_libpd_printhook) pdprint;
-  libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
-  libpd_init();
-  libpd_init_audio(1, 2, srate);
-  float inbuf[64], outbuf[128];  // one input channel, two output channels
-                                 // block size 64, one tick per buffer
+	// init pd
+	int srate = 44100;
+	libpd_printhook = (t_libpd_printhook) pdprint;
+	libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
+	libpd_init();
+	libpd_init_audio(1, 2, srate);
 
-  // compute audio    [; pd dsp 1(
-  libpd_start_message(1); // one entry in list
-  libpd_add_float(1.0f);
-  libpd_finish_message("pd", "dsp");
+	// compute audio    [; pd dsp 1(
+	libpd_start_message(1); // one entry in list
+	libpd_add_float(1.0f);
+	libpd_finish_message("pd", "dsp");
 
-  // open patch       [; pd open file folder(
-  libpd_openfile(path_file, path_folder);
+	// open patch       [; pd open file folder(
+	libpd_openfile(path_file, path_folder);
 
-  // now run pd for ten seconds (logical time)
-  int i,j;
-  for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
-  for (i=0;i<sizeof(outbuf)/sizeof(float);++i) outbuf[i] = 0;
-  for (i = 0; i < 10 * srate / 64; i++) {
-    // fill inbuf here
-    libpd_process_float(1, inbuf, outbuf);
-    // use outbuf here
-	for (j=0;j<sizeof(outbuf)/sizeof(float);++j) printf("%0.1f;",(float)outbuf[j]); printf("\n");
-  }
+	printf("libpd_blocksize=%d\n",(int)libpd_blocksize());
 
-  return 0;
+
+	// now run pd in loop for openal out
+	cLuaAudio luaAudio;
+	cLuaAudioStream o(new cLuaAudioDecoder_LibPD());
+	o.setSource(luaAudio.makeSource());
+	o.playAtomic();
+	while (true) { o.update(); }
+
+	// now run pd for ten seconds (logical time)
+	//~ int i,j;
+	//~ for (i = 0; i < 10 * srate / 64; i++) {
+	// fill inbuf here
+	//~ libpd_process_float(1, inbuf, outbuf);
+	// use outbuf here
+	//~ for (j=0;j<sizeof(outbuf)/sizeof(float);++j) printf("%0.1f;",(float)outbuf[j]); printf("\n");
+	//~ }
+
+	return 0;
 }
 
 
