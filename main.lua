@@ -7,10 +7,10 @@ lovepdaudio.helloworld()
 print("03")
 
 function love.load () 
-	gMyPlayer = lovepdaudio.CreatePureDataPlayer("pdnes.pd")
+	gPDPlayer = lovepdaudio.CreatePureDataPlayer("pdnes.pd")
 end
 function love.update () 
-	lovepdaudio.PureDataPlayer_Update(gMyPlayer)
+	lovepdaudio.PureDataPlayer_Update(gPDPlayer)
 end
 function love.draw () love.graphics.print("hello world",0,0) end
 

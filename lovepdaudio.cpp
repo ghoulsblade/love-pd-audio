@@ -42,6 +42,10 @@ extern "C" {
 	int LUA_API luaopen_lovepdaudio (lua_State *L);
 }
 
+// ***** ***** ***** ***** ***** utils
+
+inline bool	LuaIsSet		(lua_State *L,int i) { return lua_gettop(L) >= i && !lua_isnil(L,i); }
+	
 // ***** ***** ***** ***** ***** cLuaAudio
 
 class cLuaAudio { public:
@@ -310,9 +314,12 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int BYTES_PER_SAMPLE = 2;
 	static const unsigned short SAMPLE_MINVAL = 0;
 	static const unsigned short SAMPLE_MAXVAL = 0xCfff;
-	unsigned short mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
+	unsigned short* mybuf;
+	int blocks_per_tick;
 	
-	cLuaAudioDecoder_LibPD () {
+	~cLuaAudioDecoder_LibPD () { delete[] mybuf; }
+	cLuaAudioDecoder_LibPD (int blocks_per_tick=1) : blocks_per_tick(blocks_per_tick) {
+		mybuf = new unsigned short[blocks_per_tick*BLOCK_SIZE*NUM_OUT_CHANNELS];
 		int i;
 		for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
 		for (i=0;i<sizeof(outbuf)/sizeof(float);++i) outbuf[i] = 0;
@@ -325,16 +332,19 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 	
 	virtual int decode () {
-		libpd_process_float(1, inbuf, outbuf);
-		int num_samples = sizeof(outbuf)/sizeof(float);
-		for (int i=0;i<num_samples;++i) { 
-			float v = outbuf[i]; 
-			v *= ((float)SAMPLE_MAXVAL);
-				 if (v <= SAMPLE_MINVAL) mybuf[i] = SAMPLE_MINVAL;
-			else if (v >= SAMPLE_MAXVAL) mybuf[i] = SAMPLE_MAXVAL; 
-			else mybuf[i] = v;
+		int num_samples_per_block = sizeof(outbuf)/sizeof(float);
+		for (int ib=0;ib<blocks_per_tick;++ib) {
+			int ioff = ib*num_samples_per_block;
+			libpd_process_float(1, inbuf, outbuf);
+			for (int i=0;i<num_samples_per_block;++i) { 
+				float v = outbuf[i]; 
+				v *= ((float)SAMPLE_MAXVAL);
+					 if (v <= SAMPLE_MINVAL) mybuf[i+ioff] = SAMPLE_MINVAL;
+				else if (v >= SAMPLE_MAXVAL) mybuf[i+ioff] = SAMPLE_MAXVAL; 
+				else mybuf[i+ioff] = v;
+			}
 		}
-		return num_samples * BYTES_PER_SAMPLE;
+		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
 	}
 };
 
@@ -349,18 +359,23 @@ void pdnoteon(int ch, int pitch, int vel) {
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
 	
-	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec) {
-		// perpare audio
-		cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD();
-		int srate = dec->getSampleRate();
+	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) {
+		// calc delay params
+		if (num_buffers < 2) num_buffers = 2;
+		int msec_per_tick = delay_msec / num_buffers;
+		int srate = cLuaAudioDecoder_LibPD::DEFAULT_SAMPLE_RATE;
+		int samples_per_tick = msec_per_tick * srate / 1000;
+		int samples_per_block = libpd_blocksize();
+		int blocks_per_tick = samples_per_tick / samples_per_block;
+		if (blocks_per_tick < 1) blocks_per_tick = 1;
 		
-		int samples_per_buffer = libpd_blocksize();
-		int msec_per_buffer = (samples_per_buffer * 1000) / srate; 
-		int num_buffers = delay_msec / msec_per_buffer;
-		int min_buffers = 2;
-		if (num_buffers < min_buffers) num_buffers = min_buffers;
-		printf("msec_per_buffer = %d\n",msec_per_buffer);
+		printf("delay_msec = %d\n",delay_msec);
 		printf("num_buffers = %d\n",num_buffers);
+		printf("blocks_per_tick = %d\n",blocks_per_tick);
+		
+		// init decoder
+		cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD(blocks_per_tick);
+		//~ int srate = dec->getSampleRate();
 		
 		// init pd
 		libpd_printhook = (t_libpd_printhook) pdprint;
@@ -404,9 +419,8 @@ static int L_helloworld (lua_State *L) {
 static int L_test02 (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
-	int delay_msec = 100;
 	printf("lovepdaudio:test02 %s!\n",path_file);
-	cLuaPureDataPlayer o(luaAudio,path_file,path_folder,delay_msec);
+	cLuaPureDataPlayer o(luaAudio,path_file,path_folder);
 	while (true) { o.update(); }
 	return 0;
 }
@@ -414,8 +428,9 @@ static int L_test02 (lua_State *L) {
 static int L_CreatePureDataPlayer (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
-	int delay_msec = luaL_checkint(L,2);
-	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec);
+	int delay_msec = LuaIsSet(L,2) ? luaL_checkint(L,2) : 50;
+	int num_buffers = LuaIsSet(L,3) ? luaL_checkint(L,3) : 4;
+	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec,num_buffers);
 	lua_pushlightuserdata(L,(void*)o);
 	return 1;
 }
