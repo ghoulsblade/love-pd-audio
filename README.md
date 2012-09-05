@@ -25,10 +25,12 @@ BUGS and ISSUES
 * opening .pd files inside love2d packed zip/.love will does not work yet (physfs)
 * audible chops and cLuaAudioStream::resumePlayback printed when update is not called quickly enough
 * luabindings for libpd incomplete: complex message, array access, some hooks
-* several audio parameters like samplerate/channels/bits are currently hardcoded
+* several audio parameters like samplerate/channels/16bits/maxbuffer/... are currently hardcoded
 * it might be better to use libpd_process_short for performance if clipping isn't needed
 * no microphone input
 * no midi output
+* no windows/linux 32/64bit binaries available for download yet -> compile from source
+* no windows msvc project yet (but see Makefile for a few notes)
 
 NOTES
 -----
