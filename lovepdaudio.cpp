@@ -4,6 +4,7 @@
 // http://connect.creativelabs.com/openal/Documentation/OpenAL%201.1%20Specification.htm
 // http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
+
 #define PROJECT_TABLENAME "lovepdaudio"
 
 #include <stdio.h>
@@ -564,25 +565,24 @@ static int L_test02 (lua_State *L) {
 	return 0;
 }
 
+/// for lua: player = lovepdaudio.CreatePureDataPlayer(path_file,path_folder=".",delay_msec=50,num_buffers=4)
 static int L_CreatePureDataPlayer (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
-	const char* path_folder = ".";
-	int delay_msec = LuaIsSet(L,2) ? luaL_checkint(L,2) : 50;
-	int num_buffers = LuaIsSet(L,3) ? luaL_checkint(L,3) : 4;
+	const char* path_folder = LuaIsSet(L,3) ? luaL_checkstring(L,2) : ".";
+	int delay_msec = LuaIsSet(L,3) ? luaL_checkint(L,3) : 50;
+	int num_buffers = LuaIsSet(L,4) ? luaL_checkint(L,4) : 4;
 	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec,num_buffers);
 	o->update();
 	lua_pushlightuserdata(L,(void*)o);
 	return 1;
 }
 
+/// for lua: lovepdaudio.PureDataPlayer_Update(player)
 static int L_PureDataPlayer_Update (lua_State *L) {
 	cLuaPureDataPlayer* o = (cLuaPureDataPlayer*)lua_touserdata(L,1);
 	o->update();
 	return 0;
 }
-
-
-
 
 	
 // ***** ***** ***** ***** ***** utils

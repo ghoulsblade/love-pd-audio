@@ -11,10 +11,18 @@ audio module for love2d (win.dll/linux.so) using puredata for interactive manipu
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
 
+API
+----
+
+	require("lovepdaudio")
+	function libpdhook (event,...) print("libpdhook",event,...) end
+	player = lovepdaudio.CreatePureDataPlayer(path_file,path_folder or ".",delay_msec or 50,num_buffers or 4)
+	while (true) do lovepdaudio.PureDataPlayer_Update(player) end
+	-- most libpd_* functions from https://github.com/libpd/libpd/wiki/libpd
+
 BUGS and ISSUES
 ---------------
 * chops and cLuaAudioStream::resumePlayback printed when update is not called quickly enough
-
 
 
 NOTES
