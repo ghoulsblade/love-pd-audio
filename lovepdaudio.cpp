@@ -239,7 +239,7 @@ bool cLuaAudioStream::isStopped() const {
 }
 
 void	cLuaAudioStream::resumePlayback	() {
-	printf("cLuaAudioStream::resumePlayback\n");
+	printf("cLuaAudioStream::resumePlayback (update wasn't called fast enough, increase delay?)\n");
 	ALuint old_source = source;
 	stopAtomic();
 	rewindAtomic();
@@ -403,6 +403,7 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	
 	~cLuaAudioDecoder_LibPD () { delete[] mybuf; }
 	cLuaAudioDecoder_LibPD (int blocks_per_tick=1) : blocks_per_tick(blocks_per_tick) {
+		if (libpd_blocksize() != BLOCK_SIZE) printf("warning, unexpected blocksize %d, should be %d\n",(int)libpd_blocksize(),(int)BLOCK_SIZE);
 		mybuf = new unsigned short[blocks_per_tick*BLOCK_SIZE*NUM_OUT_CHANNELS];
 		int i;
 		for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
@@ -426,6 +427,8 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 					 if (v <= SAMPLE_MINVAL) mybuf[i+ioff] = SAMPLE_MINVAL;
 				else if (v >= SAMPLE_MAXVAL) mybuf[i+ioff] = SAMPLE_MAXVAL; 
 				else mybuf[i+ioff] = v;
+					
+				// todo : int libpd_process_short(int ticks, const short *inBuf, short *outBuf)   ? warning: no clipping
 			}
 		}
 		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
@@ -469,13 +472,9 @@ class cLuaPureDataPlayer { public:
 		//~ int srate = dec->getSampleRate();
 		
 		// init pd
-		libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
-		libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
-		libpd_floathook		= (t_libpd_floathook)	callback_libpd_floathook;
-		libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
-		libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
-		libpd_init();
-		libpd_init_audio(1, dec->getChannels(), srate);
+		int nInputs = 0;
+		int nOutputs = dec->getChannels();
+		libpd_init_audio(nInputs, nOutputs, srate);
 
 		// compute audio    [; pd dsp 1(
 		libpd_start_message(1); // one entry in list
@@ -610,6 +609,27 @@ int			PushLUData	(lua_State *L,void* v) { lua_pushlightuserdata(L,v); return 1; 
 	
 void RegisterLibPD (lua_State *L) {
 	// see https://github.com/libpd/libpd/wiki/libpd
+
+	// init pd
+	libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
+	libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
+	libpd_floathook		= (t_libpd_floathook)	callback_libpd_floathook;
+	libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
+	libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
+	libpd_init();
+
+	
+	// Initializing Pd
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_clear_search_path		,());
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_add_to_search_path		,(ParamString(L)));
+	
+	// Opening patches
+	QUICKWRAP_GLOBALFUN_1RET(PushLUData	,libpd_openfile			,(ParamString(L),ParamString(L,2)));
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_closefile		,(ParamLUData(L)));
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_getdollarzero	,(ParamLUData(L)));
+	
+	// Audio processing with Pd
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_blocksize		,());
 	
 	// Sending messages to Pd
 	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_bang				,(ParamString(L)));
@@ -626,12 +646,12 @@ void RegisterLibPD (lua_State *L) {
 	// Sending compound messages: Flexible approach   : needs t_atom
 	
 	// Receiving messages from Pd
-	QUICKWRAP_GLOBALFUN_1RET(PushLUData	,libpd_bind		,(ParamString(L)));
-	QUICKWRAP_GLOBALFUN_VOID(			 libpd_unbind	,(ParamLUData(L)));
+	QUICKWRAP_GLOBALFUN_1RET(PushLUData	,libpd_bind			,(ParamString(L)));
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_unbind		,(ParamLUData(L)));
 	// see also libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
 	
 	// Accessing arrays in Pd 
-	//~ int libpd_arraysize(const char *name)
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_arraysize	,(ParamString(L)));
 	//~ int libpd_read_array(float *dest, const char *src, int offset, int n)
 	//~ int libpd_write_array(const char *dest, int offset, float *src, int n)
 	// TODO: needs size check, buffer alloc and free (std::string?std::vector?)
