@@ -4,31 +4,57 @@
 // http://connect.creativelabs.com/openal/Documentation/OpenAL%201.1%20Specification.htm
 // http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
+#define PROJECT_TABLENAME "lovepdaudio"
+
 #include <stdio.h>
+#include <stdarg.h>
 extern "C" {
 	#include "lua.h"
 	#include "lauxlib.h"
 }
-#define PROJECT_TABLENAME "lovepdaudio"
 
+// headers
 #include "z_libpd.h"
+#include <float.h>
+#include <string>
 
+// Platform
+#if defined(WIN32) || defined(_WIN32)
+#	define MY_WINDOWS 1
+#endif
+#if defined(linux) || defined(__linux) || defined(__linux__)
+#	define MY_LINUX 1
+#endif
+#if defined(__APPLE__)
+#	define MY_MACOSX 1
+#endif
+#if defined(macintosh)
+#	define MY_MACOS 1
+#endif
+
+// lua
 #ifdef LUA_API
 #undef LUA_API
 #endif
-#ifdef WIN32
+#ifdef MY_WIN32
 #define LUA_API __declspec(dllexport)
 #else
 #define LUA_API
 #endif
 
-#ifdef WIN32
+// var arg printf
+#ifdef MY_WIN32
+#define vsnprintf     _vsnprintf
+#endif
+
+// sleep
+#ifdef MY_WIN32
 #else
-#include <unistd.h> // Sleep
+//~ #include <unistd.h> // Sleep
 #endif
 
 // OpenAL
-#ifdef LOVE_MACOSX
+#ifdef MY_MACOSX
 #include <OpenAL/alc.h>
 #include <OpenAL/al.h>
 #else
@@ -36,8 +62,8 @@ extern "C" {
 #include <AL/al.h>
 #endif
 
-#include <float.h>
-#include <string>
+
+// ***** ***** ***** ***** ***** prototypes
 
 extern "C" {
 	int LUA_API luaopen_lovepdaudio (lua_State *L);
@@ -349,15 +375,31 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	}
 };
 
+void lua_libpd_hook (const char* eventname,const char* fmt,...);
+
 // todo: do not call lua directly here? use polling?  async or during step?
-void	callback_libpd_banghook		(const char *s) { printf("banghook: %s", s); }
-void	callback_libpd_printhook	(const char *s) { printf("printhook: %s", s); }
-void	callback_libpd_floathook	(const char *s,float v) { printf("floathook: %s %f",s,v); }
-void	callback_libpd_symbolhook	(const char *s,const char* v) { printf("symbolhook: %s %s",s,v); }
-void	callback_libpd_noteonhook	(int ch, int pitch, int vel) { printf("noteonhook: %d %d %d\n", ch, pitch, vel); }
+void	callback_libpd_banghook		(const char *s) { lua_libpd_hook("banghook","%s", s); }
+void	callback_libpd_printhook	(const char *s) { lua_libpd_hook("printhook","%s", s); }
+void	callback_libpd_floathook	(const char *s,float v) { lua_libpd_hook("floathook","%s %f",s,v); }
+void	callback_libpd_symbolhook	(const char *s,const char* v) { lua_libpd_hook("symbolhook","%s %s",s,v); }
+void	callback_libpd_noteonhook	(int ch, int pitch, int vel) { lua_libpd_hook("noteonhook","%d %d %d", ch, pitch, vel); }
 
 // TODO?  typedef (*t_libpd_listhook)(const char *source, int argc, t_atom *argv)
 // TODO?  typedef (*t_libpd_messagehook)(const char *source, const char *symbol, int argc, t_atom *argv)
+
+
+#define MAX_LUA_LIBPD_HOOK_PARAM_TEXT_LEN 1024
+void lua_libpd_hook (const char* eventname,const char* fmt,...) {
+	va_list ap;
+	va_start(ap,fmt);
+	char mybuf[MAX_LUA_LIBPD_HOOK_PARAM_TEXT_LEN];
+	mybuf[0] = 0;
+	vsnprintf(mybuf,sizeof(mybuf)-1,fmt,ap);
+	printf("%s\n",mybuf);
+	//~ std::string s(mybuf);
+	
+	va_end(ap);
+}
 
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
@@ -440,6 +482,7 @@ static int L_CreatePureDataPlayer (lua_State *L) {
 	int delay_msec = LuaIsSet(L,2) ? luaL_checkint(L,2) : 50;
 	int num_buffers = LuaIsSet(L,3) ? luaL_checkint(L,3) : 4;
 	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec,num_buffers);
+	o->update();
 	lua_pushlightuserdata(L,(void*)o);
 	return 1;
 }

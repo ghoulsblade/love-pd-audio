@@ -12,6 +12,12 @@ audio module for love2d (win.dll/linux.so) using puredata for interactive manipu
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
 
+BUGS and ISSUES
+---------------
+* stops when update is not called quickly enough, maybe need to start play again ?
+
+
+
 NOTES
 -----
 
