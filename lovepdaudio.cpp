@@ -102,7 +102,7 @@ class cLuaAudio { public:
 
 // ***** ***** ***** ***** ***** cLuaAudioDecoder
 
-/// dummy to keep code similar to love
+/// base class
 class cLuaAudioDecoder { public:
 	static const int DEFAULT_SAMPLE_RATE = 44100;
 
@@ -116,6 +116,7 @@ class cLuaAudioDecoder { public:
 	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 };
 
+/// dummy to keep code similar to love
 class cLuaAudioDecoder_Dummy : public cLuaAudioDecoder { public:
 	unsigned char mybuf[10*1024];
 
@@ -290,59 +291,23 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 	return decoded; // TODO : newly added samples ? see love2d::Source::streamAtomic
 }
 
-// ***** ***** ***** ***** ***** lua api
-
-void pdprint(const char *s) {
-  printf("%s", s);
-}
-
-void pdnoteon(int ch, int pitch, int vel) {
-  printf("noteon: %d %d %d\n", ch, pitch, vel);
-}
-
-#define LIBPD_DEC_16BIT
-//~ #define LIBPD_DEC_SIGNED
+// ***** ***** ***** ***** ***** pure data wrapper
 
 // ok: 8bit  unsigned
 // ok: 16bit signed  (a bit quiet)
 // fail-heavy : 8bit signed
-// fail-sometimes : 16bit unsigned   with max=0xffff  ok with 0xCfff
+// fail-sometimes : 16bit unsigned   with max=0xffff ,  ok with 0xCfff
 
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
-	static const int BLOCK_SIZE = 64;
+	static const int BLOCK_SIZE = 64; // assert(64 == libpd_blocksize());
 	static const int NUM_OUT_CHANNELS = 1;
 	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
 	
-	#ifdef LIBPD_DEC_SIGNED
-		#ifdef LIBPD_DEC_16BIT
-		static const int BYTES_PER_SAMPLE = 2;
-		#define LIBPD_DEC_TYPE signed short
-		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = -0x7fff;
-		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0x7fff;
-		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
-		#else
-		#define LIBPD_DEC_TYPE signed char
-		static const int BYTES_PER_SAMPLE = 1;
-		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = -0x7f;
-		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0x7f;
-		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
-		#endif
-	#else
-		#ifdef LIBPD_DEC_16BIT
-		#define LIBPD_DEC_TYPE unsigned short
-		static const int BYTES_PER_SAMPLE = 2;
-		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = 0;
-		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xCfff;
-		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
-		#else
-		#define LIBPD_DEC_TYPE unsigned char
-		static const int BYTES_PER_SAMPLE = 1;
-		static const LIBPD_DEC_TYPE SAMPLE_MINVAL = 0;
-		static const LIBPD_DEC_TYPE SAMPLE_MAXVAL = 0xff;
-		LIBPD_DEC_TYPE mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
-		#endif
-	#endif
+	static const int BYTES_PER_SAMPLE = 2;
+	static const unsigned short SAMPLE_MINVAL = 0;
+	static const unsigned short SAMPLE_MAXVAL = 0xCfff;
+	unsigned short mybuf[BLOCK_SIZE*NUM_OUT_CHANNELS];
 	
 	cLuaAudioDecoder_LibPD () {
 		int i;
@@ -370,72 +335,58 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	}
 };
 
-
-
-int lib_pd_test (const char* path_file,const char* path_folder) {
-	// perpare audio
-	cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD();
-	
-	// init pd
-	int srate = dec->getSampleRate();
-	libpd_printhook = (t_libpd_printhook) pdprint;
-	libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
-	libpd_init();
-	libpd_init_audio(1, dec->getChannels(), srate);
-
-	// compute audio    [; pd dsp 1(
-	libpd_start_message(1); // one entry in list
-	libpd_add_float(1.0f);
-	libpd_finish_message("pd", "dsp");
-
-	// open patch       [; pd open file folder(
-	libpd_openfile(path_file, path_folder);
-
-	printf("libpd_blocksize=%d\n",(int)libpd_blocksize());
-
-
-	// now run pd in loop for openal out
-	cLuaAudio luaAudio;
-	cLuaAudioStream o(dec);
-	o.setSource(luaAudio.makeSource());
-	o.playAtomic();
-	while (true) { o.update(); }
-
-	// now run pd for ten seconds (logical time)
-	//~ int i,j;
-	//~ for (i = 0; i < 10 * srate / 64; i++) {
-	// fill inbuf here
-	//~ libpd_process_float(1, inbuf, outbuf);
-	// use outbuf here
-	//~ for (j=0;j<sizeof(outbuf)/sizeof(float);++j) printf("%0.1f;",(float)outbuf[j]); printf("\n");
-	//~ }
-
-	return 0;
+void pdprint(const char *s) {
+  printf("pdprint: %s", s);
 }
+
+void pdnoteon(int ch, int pitch, int vel) {
+  printf("pdnoteon: %d %d %d\n", ch, pitch, vel);
+}
+
+class cLuaPureDataPlayer { public:
+	cLuaAudioStream*	pAudioStream;
+	
+	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder) {
+		// perpare audio
+		cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD();
+		
+		// init pd
+		int srate = dec->getSampleRate();
+		libpd_printhook = (t_libpd_printhook) pdprint;
+		libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
+		libpd_init();
+		libpd_init_audio(1, dec->getChannels(), srate);
+
+		// compute audio    [; pd dsp 1(
+		libpd_start_message(1); // one entry in list
+		libpd_add_float(1.0f);
+		libpd_finish_message("pd", "dsp");
+
+		// open patch       [; pd open file folder(
+		libpd_openfile(path_file, path_folder);
+
+		//~ printf("libpd_blocksize=%d\n",(int)libpd_blocksize());
+
+		// now run pd in loop for openal out
+		pAudioStream = new cLuaAudioStream(dec);
+		pAudioStream->setSource(luaAudio.makeSource());
+		pAudioStream->playAtomic();
+	}
+	
+	~cLuaPureDataPlayer () { delete pAudioStream; }
+	
+	void	update	() {
+		pAudioStream->update();
+	}
+};
 
 
 // ***** ***** ***** ***** ***** lua api
 
+cLuaAudio luaAudio; // global 
+
 static int L_helloworld (lua_State *L) {
 	printf("lovepdaudio:hello world!\n");
-	return 0;
-}
-
-void MySleep (int iSeconds) {
-	#ifndef WIN32
-		sleep(iSeconds);
-	#else
-		Sleep(iSeconds*1000); // takes milliseconds
-	#endif
-}
-
-static int L_test01 (lua_State *L) {
-	printf("lovepdaudio:test01!\n");
-	cLuaAudio luaAudio;
-	cLuaAudioStream o;
-	o.setSource(luaAudio.makeSource());
-	o.playAtomic();
-	for (int i=0;i<100000;++i) { o.update(); MySleep(1); }
 	return 0;
 }
 
@@ -443,18 +394,35 @@ static int L_test02 (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
 	printf("lovepdaudio:test02 %s!\n",path_file);
-	lib_pd_test(path_file,path_folder);
+	cLuaPureDataPlayer o(luaAudio,path_file,path_folder);
+	while (true) { o.update(); }
+	return 0;
+}
+
+static int L_CreatePureDataPlayer (lua_State *L) {
+	const char* path_file = luaL_checkstring(L,1);
+	const char* path_folder = ".";
+	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder);
+	lua_pushlightuserdata(L,(void*)o);
+	return 1;
+}
+
+static int L_PureDataPlayer_Update (lua_State *L) {
+	cLuaPureDataPlayer* o = (cLuaPureDataPlayer*)lua_touserdata(L,1);
+	o->update();
 	return 0;
 }
 
 // ***** ***** ***** ***** ***** register
 
+
 int LUA_API luaopen_lovepdaudio (lua_State *L) {
 	printf("luaopen_lovepdaudio\n");
 	struct luaL_reg funlist[] = {
-		{"helloworld",		L_helloworld},			
-		{"test01",		L_test01},			
-		{"test02",		L_test02},			
+		{"helloworld",		L_helloworld},
+		{"test02",			L_test02},
+		{"CreatePureDataPlayer",	L_CreatePureDataPlayer},
+		{"PureDataPlayer_Update",	L_PureDataPlayer_Update},
 		{NULL, NULL},
 	};
 	luaL_openlib (L, PROJECT_TABLENAME, funlist, 0);

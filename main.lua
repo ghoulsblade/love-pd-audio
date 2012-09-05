@@ -5,9 +5,15 @@ require("lovepdaudio")
 print("02")
 lovepdaudio.helloworld() 
 print("03")
---~ lovepdaudio.test01() 
-lovepdaudio.test02("pdnes.pd") 
-print("04")
 
-function love.load () end
+function love.load () 
+	gMyPlayer = lovepdaudio.CreatePureDataPlayer("pdnes.pd")
+end
+function love.update () 
+	lovepdaudio.PureDataPlayer_Update(gMyPlayer)
+end
 function love.draw () love.graphics.print("hello world",0,0) end
+
+function love.keypressed( key, unicode )
+    if (key == "escape") then os.exit(0) end
+end
