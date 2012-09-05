@@ -6,6 +6,8 @@ print("02")
 lovepdaudio.helloworld() 
 print("03")
 
+function libpdhook (event,...) print("libpdhook",event,...) end
+
 gDoPDUpdate = true
 function love.load () 
 end

@@ -5,7 +5,13 @@ require("lovepdaudio")
 print("02")
 lovepdaudio.helloworld() 
 print("03")
---~ lovepdaudio.test01() 
---~ lovepdaudio.test02("test.pd") 
-lovepdaudio.test02("pdnes.pd") 
+local filepath = "test.pd"
+local filepath = "pdnes.pd"
+--~ lovepdaudio.test02(filepath) 
+
+function libpdhook (event,...) print("libpdhook",event,...) end
+
+gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath)
+while (true) do lovepdaudio.PureDataPlayer_Update(gPDPlayer) end
+	
 print("04")

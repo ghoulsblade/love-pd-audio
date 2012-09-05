@@ -65,6 +65,8 @@ extern "C" {
 
 // ***** ***** ***** ***** ***** prototypes
 
+lua_State* gMainLuaState = 0;
+
 extern "C" {
 	int LUA_API luaopen_lovepdaudio (lua_State *L);
 }
@@ -113,8 +115,7 @@ class cLuaAudio { public:
 
 		if (alGetError() != AL_NO_ERROR) { fail("Could not generate sources."); return; }
 		
-		
-		printf("cLuaAudio init ok\n");
+		//~ printf("cLuaAudio init ok\n");
 	}
 	
 	~cLuaAudio () {
@@ -325,7 +326,7 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 	return decoded; // TODO : newly added samples ? see love2d::Source::streamAtomic
 }
 
-// ***** ***** ***** ***** ***** pure data wrapper
+// ***** ***** ***** ***** ***** cLuaAudioDecoder_LibPD
 
 // ok: 8bit  unsigned
 // ok: 16bit signed  (a bit quiet)
@@ -375,9 +376,11 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	}
 };
 
+// ***** ***** ***** ***** ***** cLuaPureDataPlayer
+
 void lua_libpd_hook (const char* eventname,const char* fmt,...);
 
-// todo: do not call lua directly here? use polling?  async or during step?
+// note: called during step?
 void	callback_libpd_banghook		(const char *s) { lua_libpd_hook("banghook","%s", s); }
 void	callback_libpd_printhook	(const char *s) { lua_libpd_hook("printhook","%s", s); }
 void	callback_libpd_floathook	(const char *s,float v) { lua_libpd_hook("floathook","%s %f",s,v); }
@@ -388,24 +391,8 @@ void	callback_libpd_noteonhook	(int ch, int pitch, int vel) { lua_libpd_hook("no
 // TODO?  typedef (*t_libpd_messagehook)(const char *source, const char *symbol, int argc, t_atom *argv)
 
 
-#define MAX_LUA_LIBPD_HOOK_PARAM_TEXT_LEN 1024
-void lua_libpd_hook (const char* eventname,const char* fmt,...) {
-	va_list ap;
-	va_start(ap,fmt);
-	char mybuf[MAX_LUA_LIBPD_HOOK_PARAM_TEXT_LEN];
-	mybuf[0] = 0;
-	vsnprintf(mybuf,sizeof(mybuf)-1,fmt,ap);
-	printf("%s\n",mybuf);
-	//~ std::string s(mybuf);
-	
-	va_end(ap);
-}
-
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
-	
-	
-// libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
 	
 	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) {
 		// calc delay params
@@ -417,9 +404,9 @@ class cLuaPureDataPlayer { public:
 		int blocks_per_tick = samples_per_tick / samples_per_block;
 		if (blocks_per_tick < 1) blocks_per_tick = 1;
 		
-		printf("delay_msec = %d\n",delay_msec);
-		printf("num_buffers = %d\n",num_buffers);
-		printf("blocks_per_tick = %d\n",blocks_per_tick);
+		printf("lovepdaudio.delay_msec = %d\n",delay_msec);
+		printf("lovepdaudio.num_buffers = %d\n",num_buffers);
+		printf("lovepdaudio.blocks_per_tick = %d\n",blocks_per_tick);
 		
 		// init decoder
 		cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD(blocks_per_tick);
@@ -457,6 +444,51 @@ class cLuaPureDataPlayer { public:
 	}
 };
 
+
+// ***** ***** ***** ***** ***** lua_libpd_hook
+
+/// also adds a traceback to the error message in case of an error, better than a plain lua_call
+/// nret=-1 for unlimited
+/// don't use directly, stack has to be prepared and cleaned up
+int 	PCallWithErrFuncWrapper (lua_State* L,int narg, int nret) {
+	int errfunc = 0;
+	return lua_pcall(L, narg, (nret==-1) ? LUA_MULTRET : nret, errfunc);
+}
+
+void	LuaPCall_StrStr	(lua_State *L,const char* func,const char* a,const char* b) {
+	lua_getglobal(L, func); // get function
+	if (lua_isnil(L,1)) {
+		lua_pop(L,1);
+		//~ fprintf(stderr,"lua: function `%s' not found\n",func);
+	} else {
+		int narg = 0, nres = 0;
+		++narg; lua_pushstring(L, a);
+		++narg; lua_pushstring(L, b);
+		if (PCallWithErrFuncWrapper(L,narg, nres) != 0) {
+			fprintf(stderr,"lua: error running function `%s': %s\n",func, lua_tostring(L, -1));
+		} else {
+			//~ gboolean res = lua_toboolean(L,-1);
+			//~ if (nres > 0) lua_pop(L, nres);
+			//~ if (res) return TRUE;
+		}
+	}
+}
+
+
+#define LUA_LIBPD_HOOK__MAX_PARAM_TEXT_LEN 1024
+#define LUA_LIBPD_HOOK__LUA_CALLBACK_NAME "libpdhook"	// name of the lua function that will be called
+void lua_libpd_hook (const char* eventname,const char* fmt,...) {
+	va_list ap;
+	va_start(ap,fmt);
+	char mybuf[LUA_LIBPD_HOOK__MAX_PARAM_TEXT_LEN];
+	mybuf[0] = 0;
+	vsnprintf(mybuf,sizeof(mybuf)-1,fmt,ap);
+	//~ printf("%s\n",mybuf);
+	//~ std::string s(mybuf);
+	lua_State *L = gMainLuaState;
+	LuaPCall_StrStr(L,LUA_LIBPD_HOOK__LUA_CALLBACK_NAME,eventname,mybuf);
+	va_end(ap);
+}
 
 // ***** ***** ***** ***** ***** lua api
 
@@ -564,7 +596,8 @@ void RegisterLibPD (lua_State *L) {
 // ***** ***** ***** ***** ***** register
 
 int LUA_API luaopen_lovepdaudio (lua_State *L) {
-	printf("luaopen_lovepdaudio\n");
+	gMainLuaState = L;
+	//~ printf("luaopen_lovepdaudio\n");
 	struct luaL_reg funlist[] = {
 		{"helloworld",		L_helloworld},
 		{"test02",			L_test02},
