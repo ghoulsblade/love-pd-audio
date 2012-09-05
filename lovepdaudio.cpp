@@ -143,6 +143,7 @@ class cLuaAudioStream { public:
 	ALuint source;
 	bool valid;
 	static const unsigned int MAX_BUFFERS = 32;
+	int num_buffers;
 	ALuint buffers[MAX_BUFFERS];
 	
 	
@@ -158,7 +159,7 @@ class cLuaAudioStream { public:
 	float offsetSeconds;
 	
 	/// constructor
-	cLuaAudioStream(cLuaAudioDecoder* decoder=0);
+	cLuaAudioStream(cLuaAudioDecoder* decoder=0,int num_buffers=MAX_BUFFERS);
 	/// destructor
 	~cLuaAudioStream();
 	
@@ -172,15 +173,17 @@ class cLuaAudioStream { public:
 
 // ***** ***** ***** ***** ***** cLuaAudioStream impl
 
-cLuaAudioStream::cLuaAudioStream	(cLuaAudioDecoder* decoder) : type(TYPE_STREAM), valid(false), source(0),
+cLuaAudioStream::cLuaAudioStream	(cLuaAudioDecoder* decoder,int num_buffers) : type(TYPE_STREAM), valid(false), source(0),
 		pitch(1.0f), volume(1.0f), minVolume(0.0f),
 		maxVolume(1.0f), referenceDistance(1.0f), rolloffFactor(1.0f), maxDistance(FLT_MAX),
 		offsetSamples(0), offsetSeconds(0), decoder(decoder ? decoder : (new cLuaAudioDecoder_Dummy())){
-	alGenBuffers(MAX_BUFFERS, buffers);
+	if (num_buffers > MAX_BUFFERS) num_buffers = MAX_BUFFERS;
+	this->num_buffers = num_buffers;
+	alGenBuffers(num_buffers, buffers);
 }
 
 cLuaAudioStream::~cLuaAudioStream	() {
-	alDeleteBuffers(MAX_BUFFERS, buffers);
+	alDeleteBuffers(num_buffers, buffers);
 }
 
 void cLuaAudioStream::setSource (ALuint v) {
@@ -198,7 +201,7 @@ void cLuaAudioStream::playAtomic() {
 	{
 		int usedBuffers = 0;
 
-		for (unsigned int i = 0; i < MAX_BUFFERS; i++)
+		for (unsigned int i = 0; i < num_buffers; i++)
 		{
 			streamAtomic(buffers[i], decoder);
 			++usedBuffers;
@@ -346,12 +349,20 @@ void pdnoteon(int ch, int pitch, int vel) {
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
 	
-	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder) {
+	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec) {
 		// perpare audio
 		cLuaAudioDecoder_LibPD* dec = new cLuaAudioDecoder_LibPD();
+		int srate = dec->getSampleRate();
+		
+		int samples_per_buffer = libpd_blocksize();
+		int msec_per_buffer = (samples_per_buffer * 1000) / srate; 
+		int num_buffers = delay_msec / msec_per_buffer;
+		int min_buffers = 2;
+		if (num_buffers < min_buffers) num_buffers = min_buffers;
+		printf("msec_per_buffer = %d\n",msec_per_buffer);
+		printf("num_buffers = %d\n",num_buffers);
 		
 		// init pd
-		int srate = dec->getSampleRate();
 		libpd_printhook = (t_libpd_printhook) pdprint;
 		libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
 		libpd_init();
@@ -368,7 +379,7 @@ class cLuaPureDataPlayer { public:
 		//~ printf("libpd_blocksize=%d\n",(int)libpd_blocksize());
 
 		// now run pd in loop for openal out
-		pAudioStream = new cLuaAudioStream(dec);
+		pAudioStream = new cLuaAudioStream(dec,num_buffers);
 		pAudioStream->setSource(luaAudio.makeSource());
 		pAudioStream->playAtomic();
 	}
@@ -393,8 +404,9 @@ static int L_helloworld (lua_State *L) {
 static int L_test02 (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
+	int delay_msec = 100;
 	printf("lovepdaudio:test02 %s!\n",path_file);
-	cLuaPureDataPlayer o(luaAudio,path_file,path_folder);
+	cLuaPureDataPlayer o(luaAudio,path_file,path_folder,delay_msec);
 	while (true) { o.update(); }
 	return 0;
 }
@@ -402,7 +414,8 @@ static int L_test02 (lua_State *L) {
 static int L_CreatePureDataPlayer (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
-	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder);
+	int delay_msec = luaL_checkint(L,2);
+	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec);
 	lua_pushlightuserdata(L,(void*)o);
 	return 1;
 }
