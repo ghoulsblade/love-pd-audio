@@ -349,16 +349,21 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	}
 };
 
-void pdprint(const char *s) {
-  printf("pdprint: %s", s);
-}
+// todo: do not call lua directly here? use polling?  async or during step?
+void	callback_libpd_banghook		(const char *s) { printf("banghook: %s", s); }
+void	callback_libpd_printhook	(const char *s) { printf("printhook: %s", s); }
+void	callback_libpd_floathook	(const char *s,float v) { printf("floathook: %s %f",s,v); }
+void	callback_libpd_symbolhook	(const char *s,const char* v) { printf("symbolhook: %s %s",s,v); }
+void	callback_libpd_noteonhook	(int ch, int pitch, int vel) { printf("noteonhook: %d %d %d\n", ch, pitch, vel); }
 
-void pdnoteon(int ch, int pitch, int vel) {
-  printf("pdnoteon: %d %d %d\n", ch, pitch, vel);
-}
+// TODO?  typedef (*t_libpd_listhook)(const char *source, int argc, t_atom *argv)
+// TODO?  typedef (*t_libpd_messagehook)(const char *source, const char *symbol, int argc, t_atom *argv)
 
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
+	
+	
+// libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
 	
 	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) {
 		// calc delay params
@@ -379,8 +384,11 @@ class cLuaPureDataPlayer { public:
 		//~ int srate = dec->getSampleRate();
 		
 		// init pd
-		libpd_printhook = (t_libpd_printhook) pdprint;
-		libpd_noteonhook = (t_libpd_noteonhook) pdnoteon;
+		libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
+		libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
+		libpd_floathook		= (t_libpd_floathook)	callback_libpd_floathook;
+		libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
+		libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
 		libpd_init();
 		libpd_init_audio(1, dec->getChannels(), srate);
 
@@ -488,7 +496,7 @@ void RegisterLibPD (lua_State *L) {
 	// Receiving messages from Pd
 	QUICKWRAP_GLOBALFUN_1RET(PushLUData	,libpd_bind		,(ParamString(L)));
 	QUICKWRAP_GLOBALFUN_VOID(			 libpd_unbind	,(ParamLUData(L)));
-	// TODO: luacallback for  libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
+	// see also libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
 	
 	// Accessing arrays in Pd 
 	//~ int libpd_arraysize(const char *name)
@@ -506,6 +514,8 @@ void RegisterLibPD (lua_State *L) {
     QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_midibyte			,(ParamInt(L),ParamInt(L,2)));
     QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_sysex			,(ParamInt(L),ParamInt(L,2)));
     QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_sysrealtime		,(ParamInt(L),ParamInt(L,2)));
+	
+	// todo: receive midi ?  libpd_noteonhook, libpd_controlchangehook...
 }
 
 // ***** ***** ***** ***** ***** register
