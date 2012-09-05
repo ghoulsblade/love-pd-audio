@@ -33,6 +33,8 @@ BUGS and ISSUES
 NOTES
 -----
 
+So far this lua module doesn't even need löve2d and can be used with pure lua.
+
 Interfacing directly into the love audio via sounddata in love 0.8.0 will not work properly due to lack of buffering/streaming api for runtime-generated audio-data.<br>
 Instead the love2d code for openal audio source with streaming will be used as basis, and a new openal-instance will be opened by the module, independent from löve, to avoid needing a modified love2d binary.<br>
 
