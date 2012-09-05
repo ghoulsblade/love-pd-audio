@@ -37,6 +37,7 @@ extern "C" {
 #endif
 
 #include <float.h>
+#include <string>
 
 extern "C" {
 	int LUA_API luaopen_lovepdaudio (lua_State *L);
@@ -441,8 +442,48 @@ static int L_PureDataPlayer_Update (lua_State *L) {
 	return 0;
 }
 
-// ***** ***** ***** ***** ***** register
 
+
+
+	
+// ***** ***** ***** ***** ***** utils
+	
+#define LUABIND_QUICKWRAP_STATIC(methodname,code) \
+	{ 	class cTempClass { public: \
+			static int LUABIND_ ## methodname (lua_State *L) { code return 0; }\
+		}; \
+		lua_register(L,#methodname,&cTempClass::LUABIND_ ## methodname); \
+	}
+	
+#define QUICKWRAP_GLOBALFUN_1RET(retfun,name,params) LUABIND_QUICKWRAP_STATIC(name, return retfun(L,name params); )
+#define QUICKWRAP_GLOBALFUN_VOID(name,params) 	LUABIND_QUICKWRAP_STATIC(name, name params ; ) // return void
+	
+const char*	ParamString	(lua_State *L,int i=1) { return std::string(luaL_checkstring(L,i)).c_str(); }
+float		ParamFloat	(lua_State *L,int i=1) { return luaL_checknumber(L,i); }
+float		ParamInt	(lua_State *L,int i=1) { return luaL_checkint(L,i); }
+int			PushInt		(lua_State *L,int v) { lua_pushinteger(L,v); return 1; }
+
+// ***** ***** ***** ***** ***** RegisterLibPD
+	
+void RegisterLibPD (lua_State *L) {
+	// see https://github.com/libpd/libpd/wiki/libpd
+	
+	// Sending messages to Pd
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_bang				,(ParamString(L)));
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_float			,(ParamString(L),ParamFloat(L,2)));
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_symbol			,(ParamString(L),ParamString(L,2)));
+	
+	// Sending compound messages: Simple approach for wrapping
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_start_message	,(ParamInt(L)));
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_add_float		,(ParamFloat(L)));
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_add_symbol		,(ParamString(L)));
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_finish_list		,(ParamString(L)));
+	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_finish_message	,(ParamString(L),ParamString(L,2)));
+	
+	// Sending compound messages: Flexible approach   : needs t_atom
+}
+
+// ***** ***** ***** ***** ***** register
 
 int LUA_API luaopen_lovepdaudio (lua_State *L) {
 	printf("luaopen_lovepdaudio\n");
@@ -454,6 +495,10 @@ int LUA_API luaopen_lovepdaudio (lua_State *L) {
 		{NULL, NULL},
 	};
 	luaL_openlib (L, PROJECT_TABLENAME, funlist, 0);
+	
+	RegisterLibPD(L);
+	
+	
 	return 1;
 }
 
