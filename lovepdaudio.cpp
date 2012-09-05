@@ -196,7 +196,11 @@ class cLuaAudioStream { public:
 	~cLuaAudioStream();
 	
 	void	setSource		(ALuint v);
+	bool	isStopped() const;
 	
+	void	resumePlayback	();
+	void	stopAtomic		();
+	void	rewindAtomic	();
 	void	playAtomic		();
 	bool	update			();
 	int		streamAtomic	(ALuint buffer, cLuaAudioDecoder * d);
@@ -222,6 +226,58 @@ void cLuaAudioStream::setSource (ALuint v) {
 	source = v;
 	valid = true;
 }
+
+bool cLuaAudioStream::isStopped() const {
+	if (valid)
+	{
+		ALenum state;
+		alGetSourcei(source, AL_SOURCE_STATE, &state);
+		return (state == AL_STOPPED);
+	}
+
+	return true;
+}
+
+void	cLuaAudioStream::resumePlayback	() {
+	printf("cLuaAudioStream::resumePlayback\n");
+	ALuint old_source = source;
+	stopAtomic();
+	rewindAtomic();
+	setSource(old_source);
+	playAtomic();
+}
+
+void cLuaAudioStream::rewindAtomic()
+{
+	offsetSamples = 0;
+	offsetSeconds = 0;
+}
+
+void cLuaAudioStream::stopAtomic()
+{
+	if (valid)
+	{
+		if (type == TYPE_STATIC)
+		{
+			alSourceStop(source);
+		}
+		else if (type == TYPE_STREAM)
+		{
+			alSourceStop(source);
+			int queued = 0;
+			alGetSourcei(source, AL_BUFFERS_QUEUED, &queued);
+
+			while (queued--)
+			{
+				ALuint buffer;
+				alSourceUnqueueBuffers(source, 1, &buffer);
+			}
+		}
+		alSourcei(source, AL_BUFFER, AL_NONE);
+	}
+	valid = false;
+}
+
 
 /// love2d::source::playAtomic
 void cLuaAudioStream::playAtomic() {
@@ -440,6 +496,7 @@ class cLuaPureDataPlayer { public:
 	~cLuaPureDataPlayer () { delete pAudioStream; }
 	
 	void	update	() {
+		if (pAudioStream->isStopped()) pAudioStream->resumePlayback();
 		pAudioStream->update();
 	}
 };

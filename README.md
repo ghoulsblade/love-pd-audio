@@ -14,7 +14,7 @@ see above for licensing details since code from there was used, they all use BSD
 
 BUGS and ISSUES
 ---------------
-* stops when update is not called quickly enough, maybe need to start play again ?
+* chops and cLuaAudioStream::resumePlayback printed when update is not called quickly enough
 
 
 
