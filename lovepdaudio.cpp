@@ -461,7 +461,10 @@ static int L_PureDataPlayer_Update (lua_State *L) {
 const char*	ParamString	(lua_State *L,int i=1) { return std::string(luaL_checkstring(L,i)).c_str(); }
 float		ParamFloat	(lua_State *L,int i=1) { return luaL_checknumber(L,i); }
 float		ParamInt	(lua_State *L,int i=1) { return luaL_checkint(L,i); }
+void*		ParamLUData	(lua_State *L,int i=1) { return lua_touserdata(L,i); }
+
 int			PushInt		(lua_State *L,int v) { lua_pushinteger(L,v); return 1; }
+int			PushLUData	(lua_State *L,void* v) { lua_pushlightuserdata(L,v); return 1; }
 
 // ***** ***** ***** ***** ***** RegisterLibPD
 	
@@ -481,6 +484,28 @@ void RegisterLibPD (lua_State *L) {
 	QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_finish_message	,(ParamString(L),ParamString(L,2)));
 	
 	// Sending compound messages: Flexible approach   : needs t_atom
+	
+	// Receiving messages from Pd
+	QUICKWRAP_GLOBALFUN_1RET(PushLUData	,libpd_bind		,(ParamString(L)));
+	QUICKWRAP_GLOBALFUN_VOID(			 libpd_unbind	,(ParamLUData(L)));
+	// TODO: luacallback for  libpd_printhook,libpd_banghook,libpd_floathook,libpd_symbolhook,libpd_listhook,libpd_messagehook
+	
+	// Accessing arrays in Pd 
+	//~ int libpd_arraysize(const char *name)
+	//~ int libpd_read_array(float *dest, const char *src, int offset, int n)
+	//~ int libpd_write_array(const char *dest, int offset, float *src, int n)
+	// TODO: needs size check, buffer alloc and free (std::string?std::vector?)
+	
+	// MIDI support in libpd
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_noteon			,(ParamInt(L),ParamInt(L,2),ParamInt(L,3)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_controlchange	,(ParamInt(L),ParamInt(L,2),ParamInt(L,3)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_programchange	,(ParamInt(L),ParamInt(L,2)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_pitchbend		,(ParamInt(L),ParamInt(L,2)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_aftertouch		,(ParamInt(L),ParamInt(L,2)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_polyaftertouch	,(ParamInt(L),ParamInt(L,2),ParamInt(L,3)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_midibyte			,(ParamInt(L),ParamInt(L,2)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_sysex			,(ParamInt(L),ParamInt(L,2)));
+    QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_sysrealtime		,(ParamInt(L),ParamInt(L,2)));
 }
 
 // ***** ***** ***** ***** ***** register
