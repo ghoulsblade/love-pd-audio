@@ -1,7 +1,7 @@
 love-pd-audio
 =============
 
-audio module for lua / love2d (win.dll/linux.so) using puredata for interactive audio manipulation/generation<br>
+audio module for lua / love2d (win.dll/linux.so/mac?) using puredata for interactive audio manipulation/generation<br>
 
 PureData files should make it possible to play midi files using sampled instruments, do realtime audio-generation and modification with configurable effect pipes like reverb etc, <br>
 as well as all do advanced audio feedback like modifying music dynamically based on game happenings, and using the current point in the music to customize sound effects to fit in better.<br>
