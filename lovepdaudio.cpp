@@ -4,6 +4,7 @@
 // http://connect.creativelabs.com/openal/Documentation/OpenAL%201.1%20Specification.htm
 // http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
+#define USE_OPENAL
 
 #define PROJECT_TABLENAME "lovepdaudio"
 
@@ -55,12 +56,14 @@ extern "C" {
 #endif
 
 // OpenAL
+#ifdef USE_OPENAL
 #ifdef MY_MACOSX
 #include <OpenAL/alc.h>
 #include <OpenAL/al.h>
 #else
 #include <AL/alc.h>
 #include <AL/al.h>
+#endif
 #endif
 
 
@@ -78,6 +81,7 @@ inline bool	LuaIsSet		(lua_State *L,int i) { return lua_gettop(L) >= i && !lua_i
 	
 // ***** ***** ***** ***** ***** cLuaAudio
 
+#ifdef USE_OPENAL
 class cLuaAudio { public:
 	// The OpenAL device.
 	ALCdevice * device;
@@ -132,9 +136,15 @@ class cLuaAudio { public:
 	
 	void fail (const char* txt) { printf("cLuaAudio:fail %s\n",txt); }
 };
+#else
+class cLuaAudio { public:
+	cLuaAudio () {}
+};
+#endif
 
 // ***** ***** ***** ***** ***** cLuaAudioDecoder
 
+#ifdef USE_OPENAL
 /// base class
 class cLuaAudioDecoder { public:
 	static const int DEFAULT_SAMPLE_RATE = 44100;
@@ -164,9 +174,11 @@ class cLuaAudioDecoder_Dummy : public cLuaAudioDecoder { public:
 	virtual int getBits () { return 8; } // 8bit
 	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 };
+#endif
 
 // ***** ***** ***** ***** ***** cLuaAudioStream
 
+#ifdef USE_OPENAL
 /// based on love2d::Source
 class cLuaAudioStream { public:
 	typedef enum { TYPE_STREAM, TYPE_STATIC } eType;
@@ -207,9 +219,15 @@ class cLuaAudioStream { public:
 	int		streamAtomic	(ALuint buffer, cLuaAudioDecoder * d);
 	ALenum	getFormat		(int channels, int bits) const;
 };
+#else
+class cLuaAudioStream { public:
+	cLuaAudioStream() {}
+};
+#endif
 
 // ***** ***** ***** ***** ***** cLuaAudioStream impl
 
+#ifdef USE_OPENAL
 cLuaAudioStream::cLuaAudioStream	(cLuaAudioDecoder* decoder,int num_buffers) : type(TYPE_STREAM), valid(false), source(0),
 		pitch(1.0f), volume(1.0f), minVolume(0.0f),
 		maxVolume(1.0f), referenceDistance(1.0f), rolloffFactor(1.0f), maxDistance(FLT_MAX),
@@ -382,6 +400,7 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 	//~ printf("cLuaAudioStream::streamAtomic %d\n",(int)buffer,(int)decoded);
 	return decoded; // TODO : newly added samples ? see love2d::Source::streamAtomic
 }
+#endif
 
 // ***** ***** ***** ***** ***** cLuaAudioDecoder_LibPD
 
@@ -390,6 +409,7 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 // fail-heavy : 8bit signed
 // fail-sometimes : 16bit unsigned   with max=0xffff ,  ok with 0xCfff
 
+#ifdef USE_OPENAL
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int BLOCK_SIZE = 64; // assert(64 == libpd_blocksize());
@@ -435,6 +455,14 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
 	}
 };
+#else
+class cLuaAudioDecoder_LibPD { public:
+	static const int DEFAULT_SAMPLE_RATE = 44100;
+	static const int NUM_OUT_CHANNELS = 1;
+	cLuaAudioDecoder_LibPD (int blocks_per_tick) {}
+	virtual int getChannels () { return NUM_OUT_CHANNELS; } // 1=mono 2=stereo
+};
+#endif
 
 // ***** ***** ***** ***** ***** cLuaPureDataPlayer
 
@@ -454,7 +482,8 @@ void	callback_libpd_noteonhook	(int ch, int pitch, int vel) { lua_libpd_hook("no
 class cLuaPureDataPlayer { public:
 	cLuaAudioStream*	pAudioStream;
 	
-	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) {
+	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) :
+		pAudioStream(0) {
 		// calc delay params
 		if (num_buffers < 2) num_buffers = 2;
 		int msec_per_tick = delay_msec / num_buffers;
@@ -488,16 +517,20 @@ class cLuaPureDataPlayer { public:
 		//~ printf("libpd_blocksize=%d\n",(int)libpd_blocksize());
 
 		// now run pd in loop for openal out
+		#ifdef USE_OPENAL
 		pAudioStream = new cLuaAudioStream(dec,num_buffers);
 		pAudioStream->setSource(luaAudio.makeSource());
 		pAudioStream->playAtomic();
+		#endif
 	}
 	
-	~cLuaPureDataPlayer () { delete pAudioStream; }
+	~cLuaPureDataPlayer () { if (pAudioStream) delete pAudioStream; }
 	
 	void	update	() {
+		#ifdef USE_OPENAL
 		if (pAudioStream->isStopped()) pAudioStream->resumePlayback();
 		pAudioStream->update();
+		#endif
 	}
 };
 
