@@ -4,11 +4,46 @@
 // http://connect.creativelabs.com/openal/Documentation/OpenAL%201.1%20Specification.htm
 // http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
+/*
+// notes visual studio
+PLATFORM_CFLAGS = -DWINVER=0x502 -DWIN32 -D_WIN32 -DPD_INTERNAL -O3 \
+CFLAGS = -DPD -DHAVE_UNISTD_H -DUSEAPI_DUMMY -I./pure-data/src -I./libpd_wrapper
+
+-DWINVER=0x502 -DWIN32 -D_WIN32 -DPD_INTERNAL -DPD -DHAVE_UNISTD_H -DUSEAPI_DUMMY
+/D "WINVER=0x502" /D "WIN32" /D "_WIN32" /D "PD_INTERNAL" /D "PD" /D "HAVE_UNISTD_H" /D "USEAPI_DUMMY"
+
+-DWINVER=0x400 -DWIN32 -D_WIN32 -DPD_INTERNAL -DPD -DHAVE_UNISTD_H -DUSEAPI_DUMMY
+/D "WINVER=0x400" /D "WIN32" /D "_WIN32" /D "PD_INTERNAL" /D "PD" /D "HAVE_UNISTD_H" /D "USEAPI_DUMMY"
+
+
+msvc6 2012-09-09
+/nologo /MD /W3 /GX /O2 /I "../include" /D "WIN32" /D "_WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MSVC6LOVEPDAUDIO_EXPORTS" /D WINVER=0x400 /D "PD_INTERNAL" /D "PD" /D "HAVE_UNISTD_H" /D "USEAPI_DUMMY" /Fo"Release/" /Fd"Release/" /FD /c 
+TODO: compile libpd with -DWINVER=0x400  :
+
+Creating library file: libs/libpd.lib
+pure-data/src/s_loader.o:s_loader.c:(.text+0x26f): undefined reference to `SetDllDirectory'
+pure-data/src/s_loader.o:s_loader.c:(.text+0x2b3): undefined reference to `SetDllDirectory'
+pure-data/src/s_loader.o:s_loader.c:(.text+0x50e): undefined reference to `SetDllDirectory'
+collect2: ld returned 1 exit status
+make: *** [libs/libpd.dll] Error 1
+
+solution? added pure-data/src/s_loader.c
+		#if WINVER < 0x0502
+		printf("warning:SetDllDirectory not available\n");
+		#else
+		...
+		#endif
+
+still crashes...
+
+*/
+
 #define USE_OPENAL
-#define USE_LIBPD
+#define USE_LIBPD    // libpd.lib 
 
 #define PROJECT_TABLENAME "lovepdaudio"
 
+#include <stdlib.h> // exit
 #include <stdio.h>
 #include <stdarg.h>
 extern "C" {
@@ -18,7 +53,9 @@ extern "C" {
 
 // headers
 #ifdef USE_LIBPD
+extern "C" {
 #include "z_libpd.h"
+}
 #endif
 #include <float.h>
 #include <string>
@@ -63,9 +100,11 @@ extern "C" {
 #ifdef MY_MACOSX
 #include <OpenAL/alc.h>
 #include <OpenAL/al.h>
+#include <OpenAL/alext.h> // ALC_DEFAULT_ALL_DEVICES_SPECIFIER
 #else
 #include <AL/alc.h>
 #include <AL/al.h>
+#include <AL/alext.h> // ALC_DEFAULT_ALL_DEVICES_SPECIFIER
 #endif
 #endif
 
@@ -104,30 +143,41 @@ class cLuaAudio { public:
 
 	/// constructor
 	cLuaAudio () : device(0),capture(0),context(0) {
+		printf("cLuaAudio 00\n");
+		const char* szDeviceName = alcGetString(NULL,ALC_DEFAULT_ALL_DEVICES_SPECIFIER);
+		printf("cLuaAudio szDeviceName='%s'\n",szDeviceName);
 
 		// Passing zero for default device.
-		device = alcOpenDevice(0);
+		printf("cLuaAudio 01\n");
+		device = alcOpenDevice(szDeviceName);
+		printf("cLuaAudio 01 done.\n");
+
 
 		if (device == 0) { fail("Could not open device."); return; }
 
+		printf("cLuaAudio 02\n");
 		context = alcCreateContext(device, 0);
 
 		if (context == 0) { fail("Could not create context."); return; }
 
+		printf("cLuaAudio 03\n");
 		alcMakeContextCurrent(context);
 
 		if (alcGetError(device) != ALC_NO_ERROR) { fail("Could not make context current."); return; }
 		
 		
 		// Generate sources.
+		printf("cLuaAudio 04\n");
 		alGenSources(NUM_SOURCES, sources);
 
 		if (alGetError() != AL_NO_ERROR) { fail("Could not generate sources."); return; }
 		
+		printf("cLuaAudio 05\n");
 		//~ printf("cLuaAudio init ok\n");
 	}
 	
 	~cLuaAudio () {
+		printf("cLuaAudio destructor!\n");
 		// Free all sources.
 		alDeleteSources(NUM_SOURCES, sources);
 		
@@ -246,6 +296,7 @@ cLuaAudioStream::cLuaAudioStream	(cLuaAudioDecoder* decoder,int num_buffers) : t
 }
 
 cLuaAudioStream::~cLuaAudioStream	() {
+	printf("cLuaAudioStream destructor!\n");
 	alDeleteBuffers(num_buffers, buffers);
 }
 
@@ -554,7 +605,7 @@ class cLuaPureDataPlayer { public:
 		#endif
 	}
 	
-	~cLuaPureDataPlayer () { if (pAudioStream) delete pAudioStream; }
+	~cLuaPureDataPlayer () { printf("cLuaPureDataPlayer destructor!\n"); if (pAudioStream) delete pAudioStream; }
 	
 	void	update	() {
 		#ifdef USE_LIBPD
@@ -614,7 +665,12 @@ void lua_libpd_hook (const char* eventname,const char* fmt,...) {
 
 // ***** ***** ***** ***** ***** lua api
 
-cLuaAudio luaAudio; // global 
+//cLuaAudio luaAudio; // global 
+cLuaAudio* gpLuaAudio = 0; // global 
+cLuaAudio& GetMyAudio	() {
+	if (!gpLuaAudio) { printf("attempt to access uninitialized gpLuaAudio\n"); exit(0); }
+	return *gpLuaAudio;
+}
 
 static int L_helloworld (lua_State *L) {
 	printf("lovepdaudio:hello world!\n");
@@ -625,7 +681,7 @@ static int L_test02 (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
 	const char* path_folder = ".";
 	printf("lovepdaudio:test02 %s!\n",path_file);
-	cLuaPureDataPlayer o(luaAudio,path_file,path_folder);
+	cLuaPureDataPlayer o(GetMyAudio(),path_file,path_folder);
 	while (true) { o.update(); }
 	return 0;
 }
@@ -636,7 +692,7 @@ static int L_CreatePureDataPlayer (lua_State *L) {
 	const char* path_folder = LuaIsSet(L,2) ? luaL_checkstring(L,2) : ".";
 	int delay_msec = LuaIsSet(L,3) ? luaL_checkint(L,3) : 100;
 	int num_buffers = LuaIsSet(L,4) ? luaL_checkint(L,4) : 4;
-	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec,num_buffers);
+	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(GetMyAudio(),path_file,path_folder,delay_msec,num_buffers);
 	o->update();
 	lua_pushlightuserdata(L,(void*)o);
 	return 1;
@@ -675,14 +731,24 @@ int			PushLUData	(lua_State *L,void* v) { lua_pushlightuserdata(L,v); return 1; 
 void RegisterLibPD (lua_State *L) {
 	#ifdef USE_LIBPD
 	// see https://github.com/libpd/libpd/wiki/libpd
+	printf("RegisterLibPD 01\n");
+
+	libpd_init();
+	
+	printf("RegisterLibPD 02\n");
 
 	// init pd
+	/*
+	#ifndef MY_WINDOWS
 	libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
 	libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
 	libpd_floathook		= (t_libpd_floathook)	callback_libpd_floathook;
 	libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
 	libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
-	libpd_init();
+	#endif
+	*/
+
+	printf("RegisterLibPD 03\n");
 
 	
 	// Initializing Pd
@@ -735,12 +801,16 @@ void RegisterLibPD (lua_State *L) {
 	
 	// todo: receive midi ?  libpd_noteonhook, libpd_controlchangehook...
 	#endif
+	
+	printf("RegisterLibPD 04\n");
 }
 
 // ***** ***** ***** ***** ***** register
 
 int LUA_API luaopen_lovepdaudio (lua_State *L) {
 	gMainLuaState = L;
+	gpLuaAudio = new cLuaAudio(); // global 
+
 	//~ printf("luaopen_lovepdaudio\n");
 	struct luaL_reg funlist[] = {
 		{"helloworld",		L_helloworld},
