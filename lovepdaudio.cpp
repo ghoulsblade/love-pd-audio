@@ -85,6 +85,7 @@ inline bool	LuaIsSet		(lua_State *L,int i) { return lua_gettop(L) >= i && !lua_i
 // ***** ***** ***** ***** ***** cLuaAudio
 
 #ifdef USE_OPENAL
+#define cLuaAudio_NUM_SOURCES 4
 class cLuaAudio { public:
 	// The OpenAL device.
 	ALCdevice * device;
@@ -95,9 +96,9 @@ class cLuaAudio { public:
 	// The OpenAL context.
 	ALCcontext * context;
 	
-	static const int NUM_SOURCES = 4;
+	static const int NUM_SOURCES;
 	// OpenAL sources
-	ALuint sources[NUM_SOURCES];
+	ALuint sources[cLuaAudio_NUM_SOURCES];
 	
 	ALuint makeSource () { return sources[0]; }
 
@@ -139,6 +140,7 @@ class cLuaAudio { public:
 	
 	void fail (const char* txt) { printf("cLuaAudio:fail %s\n",txt); }
 };
+const int cLuaAudio::NUM_SOURCES = cLuaAudio_NUM_SOURCES;
 #else
 class cLuaAudio { public:
 	cLuaAudio () {}
@@ -150,7 +152,7 @@ class cLuaAudio { public:
 #ifdef USE_OPENAL
 /// base class
 class cLuaAudioDecoder { public:
-	static const int DEFAULT_SAMPLE_RATE = 44100;
+	static const int DEFAULT_SAMPLE_RATE;
 
 	cLuaAudioDecoder () {}
 	
@@ -161,6 +163,7 @@ class cLuaAudioDecoder { public:
 	virtual int getBits () { return 8; } // 8bit
 	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 };
+const int cLuaAudioDecoder::DEFAULT_SAMPLE_RATE = 44100;
 
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_Dummy : public cLuaAudioDecoder { public:
@@ -183,6 +186,7 @@ class cLuaAudioDecoder_Dummy : public cLuaAudioDecoder { public:
 
 #ifdef USE_OPENAL
 /// based on love2d::Source
+#define cLuaAudioStream_MAX_BUFFERS 32
 class cLuaAudioStream { public:
 	typedef enum { TYPE_STREAM, TYPE_STATIC } eType;
 	eType type;
@@ -190,9 +194,9 @@ class cLuaAudioStream { public:
 	
 	ALuint source;
 	bool valid;
-	static const unsigned int MAX_BUFFERS = 32;
+	static const unsigned int MAX_BUFFERS;
 	int num_buffers;
-	ALuint buffers[MAX_BUFFERS];
+	ALuint buffers[cLuaAudioStream_MAX_BUFFERS];
 	
 	
 	float pitch;
@@ -222,6 +226,7 @@ class cLuaAudioStream { public:
 	int		streamAtomic	(ALuint buffer, cLuaAudioDecoder * d);
 	ALenum	getFormat		(int channels, int bits) const;
 };
+const unsigned int cLuaAudioStream::MAX_BUFFERS = cLuaAudioStream_MAX_BUFFERS;
 #else
 class cLuaAudioStream { public:
 	cLuaAudioStream() {}
