@@ -1,15 +1,15 @@
 -- test with love2d
 
-print("01")
-require("lovepdaudio")
-print("02")
-lovepdaudio.helloworld() 
-print("03")
 
 function libpdhook (event,...) print("libpdhook",event,...) end
 
 gDoPDUpdate = true
 function love.load () 
+	print("01")
+	require("lovepdaudio")
+	print("02")
+	lovepdaudio.helloworld() 
+	print("03")
 end
 function love.update () 
 	local delay = 100

@@ -41,19 +41,19 @@ extern "C" {
 #ifdef LUA_API
 #undef LUA_API
 #endif
-#ifdef MY_WIN32
+#ifdef MY_WINDOWS
 #define LUA_API __declspec(dllexport)
 #else
 #define LUA_API
 #endif
 
 // var arg printf
-#ifdef MY_WIN32
+#ifdef MY_WINDOWS
 #define vsnprintf     _vsnprintf
 #endif
 
 // sleep
-#ifdef MY_WIN32
+#ifdef MY_WINDOWS
 #else
 //~ #include <unistd.h> // Sleep
 #endif
@@ -465,11 +465,13 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 
 #ifndef DECODER_LIBPD_VALID
 class cLuaAudioDecoder_LibPD { public:
-	static const int DEFAULT_SAMPLE_RATE = 44100;
-	static const int NUM_OUT_CHANNELS = 1;
+	static const int DEFAULT_SAMPLE_RATE;
+	static const int NUM_OUT_CHANNELS;
 	cLuaAudioDecoder_LibPD (int blocks_per_tick) {}
 	virtual int getChannels () { return NUM_OUT_CHANNELS; } // 1=mono 2=stereo
 };
+const int cLuaAudioDecoder_LibPD::DEFAULT_SAMPLE_RATE = 44100;
+const int cLuaAudioDecoder_LibPD::NUM_OUT_CHANNELS = 1;
 #endif
 
 // ***** ***** ***** ***** ***** cLuaPureDataPlayer
