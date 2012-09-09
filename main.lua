@@ -12,7 +12,8 @@ gDoPDUpdate = true
 function love.load () 
 end
 function love.update () 
-	gPDPlayer = gPDPlayer or lovepdaudio.CreatePureDataPlayer("pdnes.pd")
+	local delay = 100
+	gPDPlayer = gPDPlayer or lovepdaudio.CreatePureDataPlayer("pdnes.pd",nil,delay)
 	if (gDoPDUpdate) then lovepdaudio.PureDataPlayer_Update(gPDPlayer) end
 end
 function love.draw () love.graphics.print("hello world",0,0) end

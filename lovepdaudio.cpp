@@ -613,8 +613,8 @@ static int L_test02 (lua_State *L) {
 /// for lua: player = lovepdaudio.CreatePureDataPlayer(path_file,path_folder=".",delay_msec=50,num_buffers=4)
 static int L_CreatePureDataPlayer (lua_State *L) {
 	const char* path_file = luaL_checkstring(L,1);
-	const char* path_folder = LuaIsSet(L,3) ? luaL_checkstring(L,2) : ".";
-	int delay_msec = LuaIsSet(L,3) ? luaL_checkint(L,3) : 50;
+	const char* path_folder = LuaIsSet(L,2) ? luaL_checkstring(L,2) : ".";
+	int delay_msec = LuaIsSet(L,3) ? luaL_checkint(L,3) : 100;
 	int num_buffers = LuaIsSet(L,4) ? luaL_checkint(L,4) : 4;
 	cLuaPureDataPlayer* o = new cLuaPureDataPlayer(luaAudio,path_file,path_folder,delay_msec,num_buffers);
 	o->update();
