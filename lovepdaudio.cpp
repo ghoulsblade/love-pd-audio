@@ -5,6 +5,7 @@
 // http://connect.creativelabs.com/openal/Documentation/OpenAL_Programmers_Guide.pdf
 
 #define USE_OPENAL
+#define USE_LIBPD
 
 #define PROJECT_TABLENAME "lovepdaudio"
 
@@ -16,7 +17,9 @@ extern "C" {
 }
 
 // headers
+#ifdef USE_LIBPD
 #include "z_libpd.h"
+#endif
 #include <float.h>
 #include <string>
 
@@ -410,6 +413,8 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 // fail-sometimes : 16bit unsigned   with max=0xffff ,  ok with 0xCfff
 
 #ifdef USE_OPENAL
+#ifdef USE_LIBPD
+#define DECODER_LIBPD_VALID
 /// dummy to keep code similar to love
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int BLOCK_SIZE = 64; // assert(64 == libpd_blocksize());
@@ -455,7 +460,10 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
 	}
 };
-#else
+#endif
+#endif
+
+#ifndef DECODER_LIBPD_VALID
 class cLuaAudioDecoder_LibPD { public:
 	static const int DEFAULT_SAMPLE_RATE = 44100;
 	static const int NUM_OUT_CHANNELS = 1;
@@ -484,6 +492,7 @@ class cLuaPureDataPlayer { public:
 	
 	cLuaPureDataPlayer (cLuaAudio &luaAudio,const char* path_file,const char* path_folder,int delay_msec=50,int num_buffers=4) :
 		pAudioStream(0) {
+		#ifdef USE_LIBPD
 		// calc delay params
 		if (num_buffers < 2) num_buffers = 2;
 		int msec_per_tick = delay_msec / num_buffers;
@@ -522,14 +531,17 @@ class cLuaPureDataPlayer { public:
 		pAudioStream->setSource(luaAudio.makeSource());
 		pAudioStream->playAtomic();
 		#endif
+		#endif
 	}
 	
 	~cLuaPureDataPlayer () { if (pAudioStream) delete pAudioStream; }
 	
 	void	update	() {
+		#ifdef USE_LIBPD
 		#ifdef USE_OPENAL
 		if (pAudioStream->isStopped()) pAudioStream->resumePlayback();
 		pAudioStream->update();
+		#endif
 		#endif
 	}
 };
@@ -641,6 +653,7 @@ int			PushLUData	(lua_State *L,void* v) { lua_pushlightuserdata(L,v); return 1; 
 // ***** ***** ***** ***** ***** RegisterLibPD
 	
 void RegisterLibPD (lua_State *L) {
+	#ifdef USE_LIBPD
 	// see https://github.com/libpd/libpd/wiki/libpd
 
 	// init pd
@@ -701,6 +714,7 @@ void RegisterLibPD (lua_State *L) {
     QUICKWRAP_GLOBALFUN_1RET(PushInt	,libpd_sysrealtime		,(ParamInt(L),ParamInt(L,2)));
 	
 	// todo: receive midi ?  libpd_noteonhook, libpd_controlchangehook...
+	#endif
 }
 
 // ***** ***** ***** ***** ***** register

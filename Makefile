@@ -4,6 +4,7 @@ LUA_INC= /usr/include/lua5.1
 WARN= 
 INCS= -I$(LUA_INC) -Iinclude
 
+#~ LIBPD =  # no libpd test
 LIBPD = libs/libpd.so
 
 #~ MYFLAGS= -fPIC : 64bit only?
