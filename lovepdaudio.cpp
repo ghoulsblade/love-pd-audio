@@ -421,14 +421,21 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 #ifdef USE_LIBPD
 #define DECODER_LIBPD_VALID
 /// dummy to keep code similar to love
+
+
+#define cLuaAudioDecoder_LibPD_BLOCK_SIZE 64
+#define cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS 1
+
+
+
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
-	static const int BLOCK_SIZE = 64; // assert(64 == libpd_blocksize());
-	static const int NUM_OUT_CHANNELS = 1;
-	float inbuf[BLOCK_SIZE], outbuf[BLOCK_SIZE*NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
+	static const int BLOCK_SIZE; // assert(64 == libpd_blocksize());
+	static const int NUM_OUT_CHANNELS;
+	float inbuf[cLuaAudioDecoder_LibPD_BLOCK_SIZE], outbuf[cLuaAudioDecoder_LibPD_BLOCK_SIZE*cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
 	
-	static const int BYTES_PER_SAMPLE = 2;
-	static const unsigned short SAMPLE_MINVAL = 0;
-	static const unsigned short SAMPLE_MAXVAL = 0xCfff;
+	static const int BYTES_PER_SAMPLE;
+	static const unsigned short SAMPLE_MINVAL;
+	static const unsigned short SAMPLE_MAXVAL;
 	unsigned short* mybuf;
 	int blocks_per_tick;
 	
@@ -465,6 +472,12 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
 	}
 };
+const int cLuaAudioDecoder_LibPD::BLOCK_SIZE = cLuaAudioDecoder_LibPD_BLOCK_SIZE; // assert(64 == libpd_blocksize());
+const int cLuaAudioDecoder_LibPD::NUM_OUT_CHANNELS = cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS;
+
+const int cLuaAudioDecoder_LibPD::BYTES_PER_SAMPLE = 2;
+const unsigned short cLuaAudioDecoder_LibPD::SAMPLE_MINVAL = 0;
+const unsigned short cLuaAudioDecoder_LibPD::SAMPLE_MAXVAL = 0xCfff;
 #endif
 #endif
 
