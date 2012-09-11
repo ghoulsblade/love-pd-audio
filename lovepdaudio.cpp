@@ -722,13 +722,13 @@ void RegisterLibPD (lua_State *L) {
 	printf("RegisterLibPD 02\n");
 
 	// init pd
-	#ifndef MY_WINDOWS
+	// #ifndef MY_WINDOWS
 	libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
 	libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
 	libpd_floathook		= (t_libpd_floathook)	callback_libpd_floathook;
 	libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
 	libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
-	#endif
+	// #endif
 
 	printf("RegisterLibPD 03\n");
 
