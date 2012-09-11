@@ -18,7 +18,7 @@ CFLAGS = -DPD -DHAVE_UNISTD_H -DUSEAPI_DUMMY -I./pure-data/src -I./libpd_wrapper
 
 msvc6 2012-09-09
 /nologo /MD /W3 /GX /O2 /I "../include" /D "WIN32" /D "_WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MSVC6LOVEPDAUDIO_EXPORTS" /D WINVER=0x400 /D "PD_INTERNAL" /D "PD" /D "HAVE_UNISTD_H" /D "USEAPI_DUMMY" /Fo"Release/" /Fd"Release/" /FD /c 
-TODO: compile libpd with -DWINVER=0x400  :
+TODO: compile libpd with -DWINVER=0x400  ? didn't help.  solved by compiling both libpd and lovepdaudio with mingw in win
 
 Creating library file: libs/libpd.lib
 pure-data/src/s_loader.o:s_loader.c:(.text+0x26f): undefined reference to `SetDllDirectory'
@@ -33,8 +33,9 @@ solution? added pure-data/src/s_loader.c
 		#else
 		...
 		#endif
+didn't help.
 
-still crashes...
+fixed by compiling both libpd and lovepdaudio with mingw in win
 
 */
 
@@ -721,7 +722,6 @@ void RegisterLibPD (lua_State *L) {
 	printf("RegisterLibPD 02\n");
 
 	// init pd
-	/*
 	#ifndef MY_WINDOWS
 	libpd_banghook		= (t_libpd_banghook)	callback_libpd_banghook;
 	libpd_printhook		= (t_libpd_printhook)	callback_libpd_printhook;
@@ -729,7 +729,6 @@ void RegisterLibPD (lua_State *L) {
 	libpd_symbolhook	= (t_libpd_symbolhook)	callback_libpd_symbolhook;
 	libpd_noteonhook	= (t_libpd_noteonhook)	callback_libpd_noteonhook;
 	#endif
-	*/
 
 	printf("RegisterLibPD 03\n");
 
