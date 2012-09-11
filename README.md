@@ -66,6 +66,8 @@ Even without using the PureData part it will probably make sense to expose an ap
 
 Compile on win using http://www.mingw.org/ , browse to folder in mingw shell, run "make" (uses Makefile)
 
+See libpd-makefile.diff for how to compile libpd statically under linux
+
 Porting to webplayer might be possible on firefox and maybe also chrome using the raw audio api extension, but that's low prio for now, and won't work for standard html5 audio api in other browsers. (TODO) 
 * https://wiki.mozilla.org/Audio_Data_API 
 * http://chromium.googlecode.com/svn/trunk/samples/audio/index.html
