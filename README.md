@@ -17,11 +17,26 @@ audio module for lua / love2d (win.dll/linux.so/mac?) using puredata for interac
 PureData files should make it possible to play midi files using sampled instruments, do realtime audio-generation and modification with configurable effect pipes like reverb etc, <br>
 as well as all do advanced audio feedback like modifying music dynamically based on game happenings, and using the current point in the music to customize sound effects to fit in better.<br>
 
+PureData is a tool to combine effects and generators in a visual way, usable by audio artists without any experience in text-based programming.<br>
+The combinations are saved as *.pd files, which can be played in löve2D using this module.<br>
+Signals can be sent and received to make the music interactive and/or tweak game elements based on the audio.<br>
+
+Some examples from existing games that should be possible to realise using PureData:
+* music speed and mood adapts to the speed of a player balancing/moving on some big round object
+* time-limited power-up music becomes faster and more panicked as time runs out
+* sound effects (gui:character-select/level-select, ingame jump-on-buttons) are adjusted to fit the currently playing notes in the music
+* music instruments are modified when player enters/exits water, also reverb etc..
+* bonus level with music being played/advanced as player collects a row of items
+* enemy noises adjusted depending on distance to player
+* music adjusted based on player hitpoints and current ingame mood/area (fight/peaceful/cave/plains/water/...)
+* synching player steps or other game elements to music rythm or midi notes
+
 2012-09 ghoulsblade@schattenkind.net
 
 * http://love2d.org
 * http://puredata.info
 * https://github.com/libpd/libpd
+* https://love2d.org/forums/viewtopic.php?f=5&t=10889  Love2D Forum Thread
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
 
