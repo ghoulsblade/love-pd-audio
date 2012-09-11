@@ -477,26 +477,20 @@ int cLuaAudioStream::streamAtomic(ALuint buffer, cLuaAudioDecoder * d) {
 #define cLuaAudioDecoder_LibPD_BLOCK_SIZE 64
 #define cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS 1
 
-
-
 class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	static const int BLOCK_SIZE; // assert(64 == libpd_blocksize());
 	static const int NUM_OUT_CHANNELS;
-	float inbuf[cLuaAudioDecoder_LibPD_BLOCK_SIZE], outbuf[cLuaAudioDecoder_LibPD_BLOCK_SIZE*cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS];  // one input channel, two output channels, block size 64, one tick per buffer
+	short inbuf[cLuaAudioDecoder_LibPD_BLOCK_SIZE]; // one input channel, two output channels, block size 64, one tick per buffer
 	
 	static const int BYTES_PER_SAMPLE;
-	static const unsigned short SAMPLE_MINVAL;
-	static const unsigned short SAMPLE_MAXVAL;
-	unsigned short* mybuf;
+	short* mybuf;
 	int blocks_per_tick;
 	
 	~cLuaAudioDecoder_LibPD () { delete[] mybuf; }
 	cLuaAudioDecoder_LibPD (int blocks_per_tick=1) : blocks_per_tick(blocks_per_tick) {
 		if (libpd_blocksize() != BLOCK_SIZE) printf("warning, unexpected blocksize %d, should be %d\n",(int)libpd_blocksize(),(int)BLOCK_SIZE);
-		mybuf = new unsigned short[blocks_per_tick*BLOCK_SIZE*NUM_OUT_CHANNELS];
-		int i;
-		for (i=0;i<sizeof(inbuf)/sizeof(float);++i) inbuf[i] = 0;
-		for (i=0;i<sizeof(outbuf)/sizeof(float);++i) outbuf[i] = 0;
+		mybuf = new short[blocks_per_tick*BLOCK_SIZE*NUM_OUT_CHANNELS];
+		{ for (int i=0;i<cLuaAudioDecoder_LibPD_BLOCK_SIZE;++i) inbuf[i] = 0; }
 	}
 
 	virtual void* getBuffer () const { return (void*)mybuf; }
@@ -506,19 +500,10 @@ class cLuaAudioDecoder_LibPD : public cLuaAudioDecoder { public:
 	virtual int getSampleRate () { return DEFAULT_SAMPLE_RATE; } // 44k
 	
 	virtual int decode () {
-		int num_samples_per_block = sizeof(outbuf)/sizeof(float);
+		int num_samples_per_block = cLuaAudioDecoder_LibPD_BLOCK_SIZE*cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS;
 		for (int ib=0;ib<blocks_per_tick;++ib) {
-			int ioff = ib*num_samples_per_block;
-			libpd_process_float(1, inbuf, outbuf);
-			for (int i=0;i<num_samples_per_block;++i) { 
-				float v = outbuf[i]; 
-				v *= ((float)SAMPLE_MAXVAL);
-					 if (v <= SAMPLE_MINVAL) mybuf[i+ioff] = SAMPLE_MINVAL;
-				else if (v >= SAMPLE_MAXVAL) mybuf[i+ioff] = SAMPLE_MAXVAL; 
-				else mybuf[i+ioff] = v;
-					
-				// todo : int libpd_process_short(int ticks, const short *inBuf, short *outBuf)   ? warning: no clipping
-			}
+			int ioff = ib*(BLOCK_SIZE*NUM_OUT_CHANNELS);
+			libpd_process_short(1,inbuf,&mybuf[ioff]); // warning: no clipping of samples outside [-1, 1]
 		}
 		return blocks_per_tick * num_samples_per_block * BYTES_PER_SAMPLE;
 	}
@@ -527,8 +512,6 @@ const int cLuaAudioDecoder_LibPD::BLOCK_SIZE = cLuaAudioDecoder_LibPD_BLOCK_SIZE
 const int cLuaAudioDecoder_LibPD::NUM_OUT_CHANNELS = cLuaAudioDecoder_LibPD_NUM_OUT_CHANNELS;
 
 const int cLuaAudioDecoder_LibPD::BYTES_PER_SAMPLE = 2;
-const unsigned short cLuaAudioDecoder_LibPD::SAMPLE_MINVAL = 0;
-const unsigned short cLuaAudioDecoder_LibPD::SAMPLE_MAXVAL = 0xCfff;
 #endif
 #endif
 
