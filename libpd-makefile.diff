@@ -1,0 +1,41 @@
+diff --git a/Makefile b/Makefile
+index 09155fb..7fb1ac0 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,14 @@
+ UNAME = $(shell uname)
+ SOLIB_PREFIX = lib
+ 
++# note: building 32 bit binary on 64 bit machine : ./configure --build=i686-pc-linux-gnu "CFLAGS=-m32" "CXXFLAGS=-m32" "LDFLAGS=-m32"
++MY_COMPILE_AND_LINK_FLAGS =
++#~ MY_COMPILE_AND_LINK_FLAGS = -m32
++
++# note: static lib : http://stackoverflow.com/questions/2734719/howto-compile-a-static-library-in-linux
++
++POSTLINKCMD = 
++
+ ifeq ($(UNAME), Darwin)  # Mac
+   SOLIB_EXT = dylib
+   PDNATIVE_SOLIB_EXT = jnilib
+@@ -33,10 +41,11 @@ else
+     JAVA_HOME ?= /usr/lib/jvm/default-java
+     PLATFORM_CFLAGS = -DHAVE_LIBDL -Wno-int-to-pointer-cast \
+       -Wno-pointer-to-int-cast -fPIC -I"$(JAVA_HOME)/include" \
+-      -I"$(JAVA_HOME)/include/linux" -O3
+-    LDFLAGS = -shared -ldl -Wl,-Bsymbolic
++      -I"$(JAVA_HOME)/include/linux" -O3 $(MY_COMPILE_AND_LINK_FLAGS)
++    LDFLAGS = -shared -ldl -Wl,-Bsymbolic $(MY_COMPILE_AND_LINK_FLAGS)
+     CSHARP_LDFLAGS = $(LDFLAGS)
+     JAVA_LDFLAGS = $(LDFLAGS)
++    POSTLINKCMD = ar rcs libs/libpd.a $^
+   endif
+ endif
+ 
+@@ -102,6 +111,7 @@ libpd: $(LIBPD)
+ 
+ $(LIBPD): ${PD_FILES:.c=.o}
+ 	$(CC) -o $(LIBPD) $^ $(LDFLAGS) -lm -lpthread 
++	$(POSTLINKCMD)
+ 
+ javalib: $(PDJAVA_JAR)
+ 
