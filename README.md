@@ -2,9 +2,9 @@ DOWNLOAD
 ========
 
 * [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
-* win also needs [OpenAL32.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/OpenAL32.dll)
 * win also needs [libpd.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/libpd.dll)
 * win also needs [pthreadGC2.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/pthreadGC2.dll)
+* for pure lua without löve win also needs [OpenAL32.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/OpenAL32.dll)
 
 * [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.so.32) (rename to lovepdaudio.so) (Ubuntu/Debian)
 * [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.so.64) (rename to lovepdaudio.so) (Ubuntu/Debian)
@@ -75,6 +75,7 @@ BUGS and ISSUES
 * win binaries requires 32bit love2d binary, luckily that works fine under 64bit windows
 * win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd
 * linux users on 32 bit need to rename/link lovepdaudio.so.64 to lovepdaudio.so manually
+* mac binaries not available yet, mac compile doesn't work yet, the Makefile is based on the one from libpd, and has mac stuff, but untested and still in need of adjusting.
 
 NOTES
 -----
