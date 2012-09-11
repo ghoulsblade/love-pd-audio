@@ -11,7 +11,11 @@ local filepath = "pdnes.pd"
 
 function libpdhook (event,...) print("libpdhook",event,...) end
 
-gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath)
-while (true) do lovepdaudio.PureDataPlayer_Update(gPDPlayer) end
-	
 print("04")
+gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath)
+print("05")
+
+local i = 1
+while (true) do lovepdaudio.PureDataPlayer_Update(gPDPlayer) if (i < 10) then print("updated.") i = i + 1 end end
+	
+print("end.")

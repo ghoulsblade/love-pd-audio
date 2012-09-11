@@ -1,45 +1,70 @@
-LUA_INC= /usr/include/lua5.1
+UNAME = $(shell uname)
+SOLIB_PREFIX = lib
 
-#~ WARN= -Wall -Wmissing-prototypes -Wmissing-declarations -ansi -pedantic
-WARN= 
-INCS= -I$(LUA_INC) -Iinclude
+ifeq ($(UNAME), Darwin)  # Mac
+  SOLIB_EXT = dylib
+  PLATFORM_CFLAGS = -DHAVE_LIBDL -O3 -arch x86_64 -arch i386 -g
+  LDFLAGS = -arch x86_64 -arch i386 -dynamiclib -ldl
+else
+  ifeq ($(OS), Windows_NT)  # Windows, use Mingw
+    CC = g++
+    SOLIB_EXT = dll
+    SOLIB_PREFIX = 
+    PLATFORM_CFLAGS = -DWINVER=0x502 -DWIN32 -D_WIN32 -O3 -static-libgcc -static-libstdc++
+    MINGW_LDFLAGS = -shared -lkernel32 -Llib -llua -llua5.1 -lopenal32 -llibpd -static-libgcc -static-libstdc++
+    LDFLAGS = $(MINGW_LDFLAGS) -Wl,--output-def=lovepdaudio.def -Wl,--out-implib=lovepdaudio.lib
+  else  # Assume Linux
+    CC = g++
+    LUA_INC= /usr/include/lua5.1
+    SOLIB_EXT = so
+    PLATFORM_CFLAGS = -DHAVE_LIBDL -fPIC -O3 -I$(LUA_INC)
+    LDFLAGS = -shared -ldl -Wl,-Bsymbolic -Llib lib/libpd.so -lopenal
+    AR= ar rcu
+    RANLIB= ranlib
+  endif
+endif
 
-#~ LIBPD =  # no libpd test
-LIBPD = libs/libpd.so
+MY_FILES = \
+	lovepdaudio.cpp 
 
-#~ MYFLAGS= -fPIC : 64bit only?
-#~ MYFLAGS= -m32 : compile for 32 bit
-MYFLAGS= -fPIC   
 
-CFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
-CXXFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
-CC= g++
+LIBNAME = lovepdaudio.$(SOLIB_EXT)
 
-# OS dependent
-#~ LIB_OPTION= -shared -Llibs $(MYFLAGS) #for Linux  no-audio-test
-LIB_OPTION= -shared -lopenal -Llibs $(MYFLAGS) #for Linux
-#LIB_OPTION= -bundle -undefined dynamic_lookup #for MacOS X
+CFLAGS = -DHAVE_UNISTD_H -DUSEAPI_DUMMY -I./include $(PLATFORM_CFLAGS)
+CXXFLAGS = $(CFLAGS)
 
-LIBNAME= lovepdaudio.so
+.PHONY: lovepdaudio clean clobber
 
-OBJS= lovepdaudio.o
-SRCS= lovepdaudio.cpp
-AR= ar rcu
-RANLIB= ranlib
 
-lib: $(LIBNAME)
+lovepdaudio: $(LIBNAME)
 
-$(LIBNAME): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(LIBPD) $(OBJS)
-	
-#~ export MACOSX_DEPLOYMENT_TARGET="10.3"; $(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(OBJS)
+$(LIBNAME): ${MY_FILES:.cpp=.o}
+	$(CC) -o $(LIBNAME) $^ $(LDFLAGS) -lm 
 
-#~ $(COMPAT_DIR)/compat-5.1.o: $(COMPAT_DIR)/compat-5.1.c
-#~ $(CC) -c $(CFLAGS) -o $@ $(COMPAT_DIR)/compat-5.1.c
-
-#~ install:
-#~ mkdir -p $(LUA_LIBDIR)/lovepdaudio
-#~ cp src/$(LIBNAME) $(LUA_LIBDIR)/lovepdaudio
+# TODO: what is -lm ? taken from libpd Makefile, might not be necessary
 
 clean:
-	rm -f $(LIBNAME) *.o
+	rm -f ${MY_FILES:.cpp=.o}
+
+clobber: clean
+	rm -f $(LIBNAME)
+
+
+
+# LUA_INC= /usr/include/lua5.1
+# WARN= 
+# INCS= -I$(LUA_INC) -Iinclude
+# LIBPD = libs/libpd.so
+# MYFLAGS= -fPIC   
+# CFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
+# CXXFLAGS= -O2 $(WARN) $(INCS) $(DEFS) $(MYFLAGS)
+# CC= g++
+# LIB_OPTION= -shared -lopenal -Llibs $(MYFLAGS) #for Linux
+# LIBNAME= lovepdaudio.so
+# OBJS= lovepdaudio.o
+# SRCS= lovepdaudio.cpp
+# AR= ar rcu
+# RANLIB= ranlib
+# lib: $(LIBNAME)
+# $(LIBNAME): $(OBJS)
+# 	$(CC) $(CFLAGS) -o $@ $(LIB_OPTION) $(LIBPD) $(OBJS)
