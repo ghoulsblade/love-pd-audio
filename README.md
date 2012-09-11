@@ -1,9 +1,9 @@
 DOWNLOAD
 ========
 
-* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
-* [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.so.32) (rename to lovepdaudio.so)
-* [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.so.64) (rename to lovepdaudio.so)
+* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
+* [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.so.32) (rename to lovepdaudio.so)
+* [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.so.64) (rename to lovepdaudio.so)
 
 love-pd-audio
 =============
