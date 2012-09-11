@@ -1,3 +1,10 @@
+DOWNLOAD
+========
+
+* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
+* [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.so.32) (rename to lovepdaudio.so)
+* [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/bin/lovepdaudio.so.64) (rename to lovepdaudio.so)
+
 love-pd-audio
 =============
 
@@ -13,13 +20,6 @@ as well as all do advanced audio feedback like modifying music dynamically based
 * https://github.com/libpd/libpd
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
-
-DOWNLOAD
---------
-
-* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
-* [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.so.32) (rename to lovepdaudio.so)
-* [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.so.64) (rename to lovepdaudio.so)
 
 API
 ----
