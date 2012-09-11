@@ -43,6 +43,9 @@ EXAMPLES
 * main.lua for love2d usage
 * cd bin && love .     
 
+* test.pd from puredata
+* pdnes.pd from Filippo : http://www.fbpsound.com/
+
 BUGS and ISSUES
 ---------------
 * opening .pd files inside love2d packed zip/.love does not work yet (physfs)
