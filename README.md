@@ -14,6 +14,13 @@ as well as all do advanced audio feedback like modifying music dynamically based
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
 
+DOWNLOAD
+--------
+
+* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
+* [Linux 32Bit lovepdaudio.so.32](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.so.32) (rename to lovepdaudio.so)
+* [Linux 64Bit lovepdaudio.so.64](https://github.com/ghoulsblade/love-pd-audio/raw/lovepdaudio.so.64) (rename to lovepdaudio.so)
+
 API
 ----
 
@@ -45,6 +52,7 @@ BUGS and ISSUES
 * linux 32bit and 64bit .so available, but only tested under ubuntu 11.04 64bit, different distro might need recompile
 * win binaries requires 32bit love2d binary, luckily that works fine under 64bit windows
 * win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd
+* linux users on 32 bit need to rename/link lovepdaudio.so.64 to lovepdaudio.so manually
 
 NOTES
 -----
