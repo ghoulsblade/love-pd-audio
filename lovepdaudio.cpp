@@ -98,15 +98,15 @@ extern "C" {
 
 // OpenAL
 #ifdef USE_OPENAL
-#ifdef MY_MACOSX
-#include <OpenAL/alc.h>
-#include <OpenAL/al.h>
-#include <OpenAL/alext.h> // ALC_DEFAULT_ALL_DEVICES_SPECIFIER
-#else
+//~ #ifdef MY_MACOSX
+//~ #include <OpenAL/alc.h>
+//~ #include <OpenAL/al.h>
+//~ #include <OpenAL/alext.h> // ALC_DEFAULT_ALL_DEVICES_SPECIFIER
+//~ #else
 #include <AL/alc.h>
 #include <AL/al.h>
 #include <AL/alext.h> // ALC_DEFAULT_ALL_DEVICES_SPECIFIER
-#endif
+//~ #endif
 #endif
 
 

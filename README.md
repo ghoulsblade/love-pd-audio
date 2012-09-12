@@ -75,7 +75,7 @@ BUGS and ISSUES
 * win binaries requires 32bit love2d binary, luckily that works fine under 64bit windows
 * win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd
 * linux users on 32 bit need to rename/link lovepdaudio.so.64 to lovepdaudio.so manually
-* mac binaries not available yet, mac compile doesn't work yet, the Makefile is based on the one from libpd, and has mac stuff, but untested and still in need of adjusting.
+* mac binaries not available yet, mac compile doesn't work yet, the Makefile is based on the one from libpd, and has mac stuff, but untested and still in need of adjusting. mac libs for lua,openal,audio needed.
 
 NOTES
 -----
