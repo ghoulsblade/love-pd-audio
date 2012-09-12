@@ -11,7 +11,7 @@ MY_COMPILE_AND_LINK_FLAGS =
 ifeq ($(UNAME), Darwin)  # Mac
   SOLIB_EXT = dylib
   PLATFORM_CFLAGS = -DHAVE_LIBDL -O3 -arch x86_64 -arch i386 -g $(MY_COMPILE_AND_LINK_FLAGS)
-  LDFLAGS = -arch x86_64 -arch i386 -dynamiclib -llua -lopenal -ldl -lpd $(MY_COMPILE_AND_LINK_FLAGS)
+  LDFLAGS = -arch x86_64 -arch i386 -dynamiclib -ldl -Llib -llua -lopenal -lpd $(MY_COMPILE_AND_LINK_FLAGS)
 else
   ifeq ($(OS), Windows_NT)  # Windows, use Mingw
     CC = g++
