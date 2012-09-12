@@ -53,10 +53,12 @@ EXAMPLES
 --------
 
 test.lua for pure lua usage
+
 	cd bin && lua test.lua 
 
 
 main.lua for love2d usage
+
 	cd bin && love .
 
 
