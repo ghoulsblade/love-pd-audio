@@ -1,4 +1,4 @@
-Big thanks to Boolsheet from Löve2D.org IRC for this info on how to compile libpd and lovepdaudio using the msvc commandline tools :
+Big thanks to Boolsheet from Love2D.org IRC for this info on how to compile libpd and lovepdaudio using the msvc commandline tools :
 
 
 
