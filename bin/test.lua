@@ -5,8 +5,9 @@ require("lovepdaudio")
 print("02")
 lovepdaudio.helloworld() 
 print("03")
-local filepath = "test.pd"
+-- local filepath = "test.pd"
 local filepath = "pdnes.pd"
+-- local filepath = "MAIN_musicmachine.pd"
 --~ lovepdaudio.test02(filepath) 
 
 function libpdhook (event,...) print("libpdhook",event,...) end
