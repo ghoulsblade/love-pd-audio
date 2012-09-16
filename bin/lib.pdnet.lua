@@ -31,9 +31,9 @@ end
 	
 local function ASCIIEncode (txt) return tostring(txt) end -- TODO? ASCIIEncoding http://msdn.microsoft.com/en-us/library/system.text.asciiencoding.aspx
 local TRIM_WHITESPACE = "[ \t\n\r]" -- White-space characters are defined by the Unicode standard. http://en.wikipedia.org/wiki/Whitespace_character#Unicode
-local function Trim			(txt) return TrimStart(TrimEnd(txt)) end -- Trim: http://msdn.microsoft.com/en-us/library/t97s7bs3.aspx  
 local function TrimStart	(txt,pattern) txt = string.gsub(txt,"^"..(pattern or TRIM_WHITESPACE).."+","") return txt end
 local function TrimEnd		(txt,pattern) txt = string.gsub(txt,(pattern or TRIM_WHITESPACE).."+$","") return txt end
+local function Trim			(txt) return TrimStart(TrimEnd(txt)) end -- Trim: http://msdn.microsoft.com/en-us/library/t97s7bs3.aspx  
 
 function PDNet:sendPdMessage	(message)
 	if (self.bConnected) then
