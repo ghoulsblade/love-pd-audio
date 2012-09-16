@@ -97,6 +97,8 @@ see https://love2d.org/sdk/love-osx-frameworks.zip for required mac libs (openal
 
 See libpd-makefile.diff for how to compile libpd statically under linux
 
+See bin/lib.pdnet.lua for how to send tcp message to netlistener in a running puredata instance for live usage. does not require the .dll this way, just luasocket, which is included in love2d.
+
 Porting to webplayer might be possible on firefox and maybe also chrome using the raw audio api extension, but that's low prio for now, and won't work for standard html5 audio api in other browsers. (TODO) 
 * https://wiki.mozilla.org/Audio_Data_API 
 * http://chromium.googlecode.com/svn/trunk/samples/audio/index.html

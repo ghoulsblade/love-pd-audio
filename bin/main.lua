@@ -1,5 +1,6 @@
 -- test with love2d
 
+dofile("lib.pdnet.lua")
 
 function libpdhook (event,...) print("libpdhook",event,...) end
 
@@ -32,6 +33,9 @@ function love.load ()
 	love.graphics.setBackgroundColor( 0x83,0xc0,0xf0 ) -- love blue from wiki
 	gSliders.speed = { x=10,y=20,w=20,h=200, min=0,max=0.07,cur=0.023, on_change=function (v) print("loopspeed",v) libpd_float("loopspeed",v) end}
 		
+	print("PDNet:Init() ...")
+	PDNet:Init()
+	
 	print("(init done)")
 end
 
@@ -42,6 +46,8 @@ function love.keypressed( key, unicode )
     if (key == "2") then libpd_float("loopspeed",0.023) end
     if (key == "3") then libpd_bang("originalspeed") end
     if (key == "4") then libpd_bang("myloopplay") end	
+    if (key == "5") then libpd_bang("test2 bang") end	
+    if (key == "6") then PDNet:SendBangToReceiver("test2") end	
 end
 
 function love.update ()
