@@ -11,18 +11,17 @@ gButtons = {}
 
 function love.load () 
 	local bEnablePDLib = true
-	local bEnablePDLib = false
 	local delay = 100
 	local filepath,dir = "test.pd",nil
 	local filepath,dir = "pdnes.pd",nil
-	local filepath,dir = "MAIN_musicmachine.pd",nil
+	local filepath,dir = "MAIN_musicmachine.pd","musicmaschiene_v1"
 	local filepath,dir = "MAIN_beatmachine.pd","beatmachine-v2"
 	local filepath,dir = "MAIN_musicmachine_v2.pd","musicmaschiene_v2"
-	local filepath,dir = "samplebank.pd","sample_bank"
-	local filepath,dir = "samplebank_auto.pd","sample_bank"
-	local filepath,dir = "samplebank_lovenet.pd","sample_bank"
+	--~ local filepath,dir = "samplebank.pd","sample_bank"
+	--~ local filepath,dir = "samplebank_auto.pd","sample_bank"
+	--~ local filepath,dir = "samplebank_lovenet.pd","sample_bank"
 	
-	if (filepath == "samplebank_lovenet.pd") then  bEnablePDLib = false end
+	if (filepath == "samplebank_lovenet.pd") then  bEnablePDLib = false  end
 	
 	print("lua _VERSION",_VERSION)
 	print("01")
@@ -35,17 +34,18 @@ function love.load ()
 		lovepdaudio = {}
 		lovepdaudio.CreatePureDataPlayer = function () return {} end
 		lovepdaudio.PureDataPlayer_Update = function () end
-		libpd_float = function () end
+		libpd_add_to_search_path = function () end
+		libpd_float = function (receiver_name,val) PDNet:SendFloat(receiver_name,val) end
 		libpd_bang = function () end
 		libpd_bind = function () end
 	end
-	
 	
 	print("start playback...")
 	
 	libpd_bind("samplesize")
 	libpd_bind("speedorig")
 	libpd_bind("playpos")
+	libpd_add_to_search_path("rj/")
 	
 	gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath,dir,delay)
 	
@@ -60,9 +60,9 @@ function love.load ()
 	gSliders.speed	= { x=40*0+10,y=20,w=20,h=200, min=0,max=0.27,cur=0.124, on_change=function (v) print("loopspeed",v) libpd_float("loopspeed",v) end}
 	gSliders.bpm	= { x=40*1+10,y=20,w=20,h=200, min=100,max=300,cur=200, on_change=function (v) print("bpm",v) libpd_float("bpm",v) end}
 	
-	gButtons.sample	= { x=40*0+10,y=260, w=20,h=20, label="ps", on_press=function () libpd_bang("playsample") end}
-	gButtons.play	= { x=40*1+10,y=260, w=20,h=20, label="ps", on_press=function () libpd_bang("myplay") end}
-	for i=0,12 do gButtons["a"..i] = { x=20*i+10,y=290, w=20,h=20, label=""..i, on_press=function () libpd_float("mybuttons",i) PDNet:SendFloat("mybuttons",i) end} end
+	gButtons.sample	= { x=60*0+10,y=260, w=60,h=20, label="sample", on_press=function () libpd_bang("playsample") end}
+	gButtons.play	= { x=60*1+10,y=260, w=60,h=20, label="play", on_press=function () libpd_bang("myplay") end}
+	for i=0,12 do gButtons["a"..i] = { x=20*i+10,y=290, w=20,h=20, label=""..i, on_press=function () libpd_float("mybuttons",i) end} end
 	
 	print("PDNet:Init() ...")
 	PDNet:Init()
