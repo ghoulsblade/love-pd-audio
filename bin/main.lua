@@ -20,18 +20,20 @@ function love.load ()
 	print("start playback...")
 	
 	local delay = 100
-	local filepath = "test.pd"
-	local filepath = "pdnes.pd"
-	local filepath = "MAIN_musicmachine.pd"
+	local filepath,dir = "test.pd",nil
+	local filepath,dir = "pdnes.pd",nil
+	local filepath,dir = "MAIN_musicmachine.pd",nil
+	local filepath,dir = "MAIN_beatmachine.pd","beatmachine-v2"
 	libpd_bind("samplesize")
 	libpd_bind("speedorig")
 	-- libpd_bind("playpos")
-	gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath,nil,delay)
+	gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath,dir,delay)
 	libpd_float("loopspeed",0.023)
 	
 	-- some gfx
 	love.graphics.setBackgroundColor( 0x83,0xc0,0xf0 ) -- love blue from wiki
 	gSliders.speed = { x=10,y=20,w=20,h=200, min=0,max=0.07,cur=0.023, on_change=function (v) print("loopspeed",v) libpd_float("loopspeed",v) end}
+	gSliders.bpm	= { x=40*1+10,y=20,w=20,h=200, min=100,max=300,cur=200, on_change=function (v) print("bpm",v) libpd_float("bpm",v) end}
 		
 	print("PDNet:Init() ...")
 	PDNet:Init()
@@ -59,8 +61,11 @@ function love.update ()
 		for k,o in pairs(gSliders) do 
 			if (mx >= o.x and mx <= o.x+o.w and
 				my >= o.y and my <= o.y+o.h) then 
-				o.cur = o.min + (o.max - o.min)*(1 - (my - o.y) / o.h)
-				o.on_change(o.cur)
+				local curnew = o.min + (o.max - o.min)*(1 - (my - o.y) / o.h)
+				if (o.cur ~= curnew) then 
+					o.cur =  curnew
+					o.on_change(o.cur)
+				end
 			end
 		end
 	end
