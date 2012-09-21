@@ -52,14 +52,14 @@ function PDNet:constructAndSendMessagesToSendMessage	(message)
 	self:sendPdMessage("bang;")
 end
 
-function PDNet:SendBangToReceiver	(receiverName)
+function PDNet:SendBang		(receiverName)
 	self:constructAndSendMessagesToSendMessage(receiverName .. " bang")
 end
 	
-function PDNet:SendFloat	(val, receiverName)
+function PDNet:SendFloat	(receiverName,val)
 	self:constructAndSendMessagesToSendMessage(receiverName .. " " .. tostring(val))
 end
 	
-function PDNet:SendSymbol	(symbol, receiverName)
+function PDNet:SendSymbol	(receiverName,symbol)
 	self:constructAndSendMessagesToSendMessage(receiverName .. " " .. symbol)
 end

@@ -1,6 +1,6 @@
 -- test with love2d
 
-dofile("lib.pdnet.lua")
+love.filesystem.load("lib.pdnet.lua")()
 
 function libpdhook (event,...) print("libpdhook",event,...) end
 
@@ -10,29 +10,50 @@ gSliders = {}
 gButtons = {}
 
 function love.load () 
-	print("lua _VERSION",_VERSION)
-	print("01")
-	require("lovepdaudio")
-	print("02")
-	lovepdaudio.helloworld() 
-	print("03")
-	
-	
-	print("start playback...")
-	
+	local bEnablePDLib = true
+	local bEnablePDLib = false
 	local delay = 100
 	local filepath,dir = "test.pd",nil
 	local filepath,dir = "pdnes.pd",nil
 	local filepath,dir = "MAIN_musicmachine.pd",nil
 	local filepath,dir = "MAIN_beatmachine.pd","beatmachine-v2"
 	local filepath,dir = "MAIN_musicmachine_v2.pd","musicmaschiene_v2"
+	local filepath,dir = "samplebank.pd","sample_bank"
+	local filepath,dir = "samplebank_auto.pd","sample_bank"
+	local filepath,dir = "samplebank_lovenet.pd","sample_bank"
+	
+	if (filepath == "samplebank_lovenet.pd") then  bEnablePDLib = false end
+	
+	print("lua _VERSION",_VERSION)
+	print("01")
+	if (bEnablePDLib) then require("lovepdaudio") end
+	print("02")
+	if (bEnablePDLib) then lovepdaudio.helloworld() end
+	print("03")
+	if (not bEnablePDLib) then 
+		-- make dummy
+		lovepdaudio = {}
+		lovepdaudio.CreatePureDataPlayer = function () return {} end
+		lovepdaudio.PureDataPlayer_Update = function () end
+		libpd_float = function () end
+		libpd_bang = function () end
+		libpd_bind = function () end
+	end
+	
+	
+	print("start playback...")
+	
 	libpd_bind("samplesize")
 	libpd_bind("speedorig")
 	libpd_bind("playpos")
+	
 	gPDPlayer = lovepdaudio.CreatePureDataPlayer(filepath,dir,delay)
 	
 	if (filepath == "MAIN_musicmachine.pd") then libpd_float("loopspeed",0.023) end
 	if (filepath == "MAIN_musicmachine_v2.pd") then libpd_float("loopspeed",0.124) end
+	if (filepath == "samplebank.pd") then libpd_float("dsp",0) libpd_bang("myloadsamp") libpd_float("dsp",1) end
+	if (filepath == "samplebank_auto.pd") then  libpd_float("dsp",1) end
+	if (filepath == "samplebank_lovenet.pd") then  libpd_float("dsp",1) end
 	
 	-- some gfx
 	love.graphics.setBackgroundColor( 0x83,0xc0,0xf0 ) -- love blue from wiki
@@ -41,6 +62,7 @@ function love.load ()
 	
 	gButtons.sample	= { x=40*0+10,y=260, w=20,h=20, label="ps", on_press=function () libpd_bang("playsample") end}
 	gButtons.play	= { x=40*1+10,y=260, w=20,h=20, label="ps", on_press=function () libpd_bang("myplay") end}
+	for i=0,12 do gButtons["a"..i] = { x=20*i+10,y=290, w=20,h=20, label=""..i, on_press=function () libpd_float("mybuttons",i) PDNet:SendFloat("mybuttons",i) end} end
 	
 	print("PDNet:Init() ...")
 	PDNet:Init()
@@ -64,7 +86,7 @@ function love.keypressed( key, unicode )
     if (key == "3") then libpd_bang("originalspeed") end
     if (key == "4") then libpd_bang("myloopplay") end	
     if (key == "5") then libpd_bang("test2 bang") end	
-    if (key == "6") then PDNet:SendBangToReceiver("test2") end	
+    if (key == "6") then PDNet:SendBang("test2") end	
 end
 
 function love.update ()
