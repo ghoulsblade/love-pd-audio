@@ -46,7 +46,7 @@ API
 	require("lovepdaudio")
 	function libpdhook (event,...) print("libpdhook",event,...) end
 	player = lovepdaudio.CreatePureDataPlayer(path_file,path_folder or ".",delay_msec or 100,num_buffers or 4)
-	while (true) do lovepdaudio.PureDataPlayer_Update(player) end
+	while (true) do lovepdaudio.PureDataPlayer_Update(player) end   -- or call without the while loop in your mainloop
 	-- most libpd_* functions from https://github.com/libpd/libpd/wiki/libpd
 
 EXAMPLES
