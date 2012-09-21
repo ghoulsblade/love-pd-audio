@@ -1,7 +1,7 @@
 DOWNLOAD
 ========
 
-* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.dll) (needs 32bit love2d binaries to work under 64bit win)
+* [Win DLL lovepdaudio.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/lovepdaudio.dll) (needs 32bit lua/love2d binaries to work under 64bit win)
 * win also needs [libpd.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/libpd.dll)
 * win also needs [pthreadGC2.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/pthreadGC2.dll)
 * for pure lua without löve win also needs [OpenAL32.dll](https://github.com/ghoulsblade/love-pd-audio/raw/master/bin/OpenAL32.dll)
