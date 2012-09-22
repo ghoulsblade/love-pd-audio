@@ -36,6 +36,7 @@ Some examples from existing games that should be possible to realise using PureD
 * http://love2d.org
 * http://puredata.info
 * https://github.com/libpd/libpd
+* https://github.com/libpd/libpd/wiki/Lua LibPD Wiki Entry
 * https://love2d.org/forums/viewtopic.php?f=5&t=10889  Love2D Forum Thread
 
 see above for licensing details since code from there was used, they all use BSD/MIT style or similar, so even binary distribution should be ok, as long as the copyright notices are included.
