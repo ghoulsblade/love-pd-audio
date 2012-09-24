@@ -53,6 +53,8 @@ API
 EXAMPLES
 --------
 
+* PureDataJam: Space Rocket X : http://gamedevmuc.de/wiki/index.php/PureDataJam
+
 test.lua for pure lua usage
 
 	cd bin && lua test.lua 
