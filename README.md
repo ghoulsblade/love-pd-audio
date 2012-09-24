@@ -83,6 +83,8 @@ BUGS and ISSUES
 * win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd  (update:see notes-msvc-compile.md)
 * linux users on 32 bit need to rename/link lovepdaudio.so.64 to lovepdaudio.so manually
 * mac binaries not available yet, mac compile doesn't work yet, the Makefile is based on the one from libpd, and has mac stuff, but untested and still in need of adjusting. mac libs for lua,openal,libpd needed.
+* libpd_add_to_search_path doesn't seem to work properly, possibly because libpd_init_audio or "dsp 1" is called during CreatePureDataPlayer, should be separated
+* some init values behave differently than in puredata, have to be sent, e.g. some sliders, might be related to the order in which "dsp 1" is called during CreatePureDataPlayer, or might be a difference between libpd and puredata
 
 NOTES
 -----
