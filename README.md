@@ -76,11 +76,11 @@ BUGS and ISSUES
 * several audio parameters like samplerate=44k/channels=2=stereo/16bits/maxbuffer=32/... are currently hardcoded
 * audio problems if output samples by pd outside [-1,1], clipping has to be done in the pd file if neccessary
 * no microphone input
-* no midi output
+* no midi in/output
 * currently still some debug output on stdout for pinpointing problems
 * linux 32bit and 64bit .so available, but only tested under ubuntu 11.04 64bit, different distro might need recompile
 * win binaries requires 32bit love2d binary, luckily that works fine under 64bit windows
-* win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd
+* win compile needs mingw, since libpd compile in msvc didn't work due to lack of C99 support, and i couldn't get lovepdaudio-msvc to cooperate with mingw-compiled-libpd  (update:see notes-msvc-compile.md)
 * linux users on 32 bit need to rename/link lovepdaudio.so.64 to lovepdaudio.so manually
 * mac binaries not available yet, mac compile doesn't work yet, the Makefile is based on the one from libpd, and has mac stuff, but untested and still in need of adjusting. mac libs for lua,openal,libpd needed.
 
@@ -88,6 +88,9 @@ NOTES
 -----
 
 So far this lua module doesn't even need löve2d and can be used with pure lua.
+
+TODO: include pd-extended midi-sequencer, to enable direct midi playback without exporting to txt in pd-extended manually<br>
+TODO: include pd-extended ogg support, to use ogg instead of large wav files for entire tracks or similar<br>
 
 Interfacing directly into the love audio via sounddata in love 0.8.0 will not work properly due to lack of buffering/streaming api for runtime-generated audio-data.<br>
 Instead the love2d code for openal audio source with streaming will be used as basis, and a new openal-instance will be opened by the module, independent from löve, to avoid needing a modified love2d binary.<br>
